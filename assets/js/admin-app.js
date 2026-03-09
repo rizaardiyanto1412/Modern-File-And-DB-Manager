@@ -99,6 +99,7 @@
 	function Icon(props) {
 		const icon = props && props.name ? props.name : 'file';
 		let path = 'M6 3h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z';
+		let path2 = '';
 
 		if (icon === 'folder') {
 			path = 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7Z';
@@ -120,17 +121,38 @@
 			path = 'M6 3h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm6 6v6m-3-3h6';
 		} else if (icon === 'folder-add') {
 			path = 'M3 8a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8Zm9 2v6m-3-3h6';
+		} else if (icon === 'file-txt') {
+			path2 = 'M8 11h8M8 14h8M8 17h5';
+		} else if (icon === 'file-php') {
+			path2 = 'M8 13.5h8M8 16.5h6';
+		} else if (icon === 'file-js') {
+			path2 = 'M8 13.5h4M14 13.5h2M8 16.5h8';
+		} else if (icon === 'file-css') {
+			path2 = 'M8 12.5h8M8 15.5h6';
 		}
 
 		return h(
 			'span',
 			{ className: `mfm-icon mfm-icon--${icon}`, 'aria-hidden': 'true' },
-			h(
-				'svg',
-				{ viewBox: '0 0 24 24', width: '14', height: '14', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-				h('path', { d: path })
-			)
-		);
+				h(
+					'svg',
+					{ viewBox: '0 0 24 24', width: '14', height: '14', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
+					h('path', { d: path }),
+					path2 ? h('path', { d: path2 }) : null
+				)
+			);
+	}
+
+	function getFileIconByExtension(item) {
+		if (!item || item.type !== 'file') {
+			return 'folder';
+		}
+		const ext = String(item.extension || '').toLowerCase();
+		if (ext === 'txt') return 'file-txt';
+		if (ext === 'php' || ext === 'phtml') return 'file-php';
+		if (ext === 'js' || ext === 'mjs' || ext === 'cjs') return 'file-js';
+		if (ext === 'css' || ext === 'scss' || ext === 'less') return 'file-css';
+		return 'file';
 	}
 
 	let cmModulesPromise = null;
@@ -726,7 +748,7 @@
 												onClick: () => (item.type === 'dir' ? refresh(item.path) : selectOnly(item.path)),
 											},
 												h('span', { className: 'mfm-item-cell' },
-													h(Icon, { name: item.type === 'dir' ? 'folder' : 'file' }),
+													h(Icon, { name: item.type === 'dir' ? 'folder' : getFileIconByExtension(item) }),
 													h('span', { className: 'mfm-item-name' }, item.name)
 												)
 											)

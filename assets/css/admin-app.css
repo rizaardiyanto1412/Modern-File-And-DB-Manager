@@ -268,6 +268,22 @@
 	color: #60758f;
 }
 
+.mfm-icon--file-txt {
+	color: #6f7f95;
+}
+
+.mfm-icon--file-php {
+	color: #6b65d8;
+}
+
+.mfm-icon--file-js {
+	color: #c89a16;
+}
+
+.mfm-icon--file-css {
+	color: #2d8ecb;
+}
+
 .mfm-btn .mfm-icon {
 	width: 14px;
 	height: 14px;
