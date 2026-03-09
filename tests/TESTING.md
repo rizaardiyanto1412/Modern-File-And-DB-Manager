@@ -25,3 +25,11 @@
 4. Use shortcuts: `Delete`, `F2`, `Ctrl/Cmd + R`.
 5. Verify responsive behavior in narrow viewport.
 6. Verify focus ring appears when navigating via keyboard.
+
+## Editor
+
+1. Select one file and click `Edit` to open the editor modal.
+2. Verify syntax highlighting appears for PHP/JS/CSS/HTML files.
+3. Verify fold gutter markers appear and functions/blocks can be collapsed.
+4. Edit content, click `Save`, and confirm file content changes on disk.
+5. Close and reopen editor to verify persisted content.

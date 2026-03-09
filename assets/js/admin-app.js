@@ -133,6 +133,33 @@
 		);
 	}
 
+	let cmModulesPromise = null;
+
+	async function loadCodeMirrorModules() {
+		if (cmModulesPromise) {
+			return cmModulesPromise;
+		}
+
+		cmModulesPromise = new Promise((resolve, reject) => {
+			if (window.MFMCodeMirror && window.MFMCodeMirror.EditorState) {
+				resolve(window.MFMCodeMirror);
+				return;
+			}
+			reject(new Error(__('Editor modules failed to load.', 'modern-file-manager')));
+		});
+
+		return cmModulesPromise;
+	}
+
+	function getLanguageExtension(path, cm) {
+		const ext = String(path || '').toLowerCase().split('.').pop();
+		if (ext === 'php' || ext === 'phtml') return cm.php();
+		if (ext === 'js' || ext === 'mjs' || ext === 'cjs' || ext === 'ts') return cm.javascript();
+		if (ext === 'css' || ext === 'scss' || ext === 'less') return cm.css();
+		if (ext === 'html' || ext === 'htm' || ext === 'xml') return cm.html();
+		return cm.php();
+	}
+
 	function App() {
 		const [path, setPath] = useState(normalizePath(config.initialPath || '/'));
 		const [items, setItems] = useState([]);
@@ -144,8 +171,14 @@
 		const [toasts, setToasts] = useState([]);
 		const [directoriesByPath, setDirectoriesByPath] = useState({ '/': [] });
 		const [pathHistory, setPathHistory] = useState(['/']);
+		const [editorOpen, setEditorOpen] = useState(false);
+		const [editorPath, setEditorPath] = useState('');
+		const [editorLoading, setEditorLoading] = useState(false);
+		const [editorSaving, setEditorSaving] = useState(false);
 		const fileInputRef = useRef(null);
 		const reqRef = useRef({ id: 0 });
+		const editorHostRef = useRef(null);
+		const editorViewRef = useRef(null);
 
 		const selectedItems = useMemo(
 			() => items.filter((item) => selected[item.path]),
@@ -264,6 +297,13 @@
 			window.addEventListener('keydown', onKeyDown);
 			return () => window.removeEventListener('keydown', onKeyDown);
 		});
+
+		useEffect(() => () => {
+			if (editorViewRef.current) {
+				editorViewRef.current.destroy();
+				editorViewRef.current = null;
+			}
+		}, []);
 
 		function toggleSort(nextKey) {
 			if (sortKey === nextKey) {
@@ -407,6 +447,106 @@
 			window.open(target, '_blank', 'noopener');
 		}
 
+		async function openEditorForPath(filePath) {
+			const target = normalizePath(filePath);
+			setEditorOpen(true);
+			setEditorPath(target);
+			setEditorLoading(true);
+			try {
+				const [fileResponse, cm] = await Promise.all([
+					apiFetch('/read-file', { query: { path: target } }),
+					loadCodeMirrorModules(),
+				]);
+
+				const fileData = fileResponse && fileResponse.data ? fileResponse.data : {};
+				const content = String(fileData.content || '');
+				const mountNode = editorHostRef.current;
+				if (!mountNode) {
+					throw new Error(__('Editor container is not ready.', 'modern-file-manager'));
+				}
+
+				if (editorViewRef.current) {
+					editorViewRef.current.destroy();
+					editorViewRef.current = null;
+				}
+
+				const extensions = [
+					cm.lineNumbers(),
+					cm.highlightActiveLineGutter(),
+					cm.history(),
+					cm.indentOnInput(),
+					cm.bracketMatching(),
+					cm.codeFolding(),
+					cm.foldGutter(),
+					cm.autocompletion(),
+					cm.syntaxHighlighting(cm.defaultHighlightStyle, { fallback: true }),
+					cm.keymap.of([
+						cm.indentWithTab,
+						...cm.defaultKeymap,
+						...cm.historyKeymap,
+						...cm.searchKeymap,
+						...cm.completionKeymap,
+					]),
+					cm.EditorView.lineWrapping,
+					getLanguageExtension(target, cm),
+				];
+
+				const state = cm.EditorState.create({
+					doc: content,
+					extensions,
+				});
+				editorViewRef.current = new cm.EditorView({
+					state,
+					parent: mountNode,
+				});
+			} catch (error) {
+				toast('error', error.message);
+				setEditorOpen(false);
+			} finally {
+				setEditorLoading(false);
+			}
+		}
+
+		function closeEditor() {
+			if (editorViewRef.current) {
+				editorViewRef.current.destroy();
+				editorViewRef.current = null;
+			}
+			setEditorOpen(false);
+			setEditorPath('');
+		}
+
+		async function saveEditor() {
+			if (!editorViewRef.current || !editorPath) {
+				return;
+			}
+			setEditorSaving(true);
+			try {
+				const content = editorViewRef.current.state.doc.toString();
+				await apiFetch('/save-file', {
+					method: 'POST',
+					body: {
+						path: editorPath,
+						content,
+					},
+				});
+				toast('success', __('File saved.', 'modern-file-manager'));
+				refresh(path);
+			} catch (error) {
+				toast('error', error.message);
+			} finally {
+				setEditorSaving(false);
+			}
+		}
+
+		function handleEditSelected() {
+			if (selectedItems.length !== 1 || selectedItems[0].type !== 'file') {
+				toast('error', __('Select one file to edit.', 'modern-file-manager'));
+				return;
+			}
+			openEditorForPath(selectedItems[0].path);
+		}
+
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
 
 		return h(
@@ -419,8 +559,9 @@
 					h('button', { className: 'button button-primary mfm-btn', onClick: handleCreateFolder }, h(Icon, { name: 'folder-add' }), h('span', null, __('New Folder', 'modern-file-manager'))),
 					h('button', { className: 'button mfm-btn', onClick: handleCreateFile }, h(Icon, { name: 'file-add' }), h('span', null, __('New File', 'modern-file-manager'))),
 					h('button', { className: 'button mfm-btn', onClick: handleUploadClick }, h(Icon, { name: 'upload' }), h('span', null, __('Upload', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: handleRename }, h(Icon, { name: 'edit' }), h('span', null, __('Rename', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: () => handleMove(false) }, h(Icon, { name: 'move' }), h('span', null, __('Move', 'modern-file-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: handleRename }, h(Icon, { name: 'edit' }), h('span', null, __('Rename', 'modern-file-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: handleEditSelected }, h(Icon, { name: 'edit' }), h('span', null, __('Edit', 'modern-file-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: () => handleMove(false) }, h(Icon, { name: 'move' }), h('span', null, __('Move', 'modern-file-manager'))),
 					h('button', { className: 'button mfm-btn', onClick: () => handleMove(true) }, h(Icon, { name: 'copy' }), h('span', null, __('Copy', 'modern-file-manager'))),
 					h('button', { className: 'button mfm-btn', onClick: handleDelete }, h(Icon, { name: 'trash' }), h('span', null, __('Delete', 'modern-file-manager'))),
 					h('button', { className: 'button mfm-btn', onClick: handleDownload }, h(Icon, { name: 'download' }), h('span', null, __('Download', 'modern-file-manager'))),
@@ -503,11 +644,11 @@
 								(filteredSortedItems.length === 0 ?
 									h('tr', { className: 'mfm-empty-row' }, h('td', { colSpan: 4 }, __('No items in this folder.', 'modern-file-manager'))) :
 									filteredSortedItems.map((item) =>
-										h('tr', {
-											key: item.path,
-											className: selected[item.path] ? 'is-selected' : '',
-											onDoubleClick: () => (item.type === 'dir' ? refresh(item.path) : selectOnly(item.path)),
-										},
+											h('tr', {
+												key: item.path,
+												className: selected[item.path] ? 'is-selected' : '',
+												onDoubleClick: () => (item.type === 'dir' ? refresh(item.path) : openEditorForPath(item.path)),
+											},
 											h('td', { className: 'mfm-col-check' },
 												h('input', {
 													type: 'checkbox',
@@ -552,11 +693,26 @@
 						)
 						: h('p', { className: 'mfm-empty-note' }, __('Select one item to view details.', 'modern-file-manager'))
 				)
-			)
-			,
-			h('div', { className: 'mfm-toast-stack', 'aria-live': 'polite' },
-				toasts.map((item) => h('div', { key: item.id, className: `mfm-toast is-${item.type}` }, item.message))
-			)
+				)
+				,
+				editorOpen ? h('div', { className: 'mfm-editor-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': __('File editor', 'modern-file-manager') },
+					h('div', { className: 'mfm-editor-window' },
+						h('div', { className: 'mfm-editor-topbar' },
+							h('strong', { className: 'mfm-editor-path' }, editorPath || __('Editor', 'modern-file-manager')),
+							h('div', { className: 'mfm-editor-actions' },
+								h('button', { type: 'button', className: 'button', onClick: closeEditor }, __('Close', 'modern-file-manager')),
+								h('button', { type: 'button', className: 'button button-primary', onClick: saveEditor, disabled: editorSaving || editorLoading }, editorSaving ? __('Saving...', 'modern-file-manager') : __('Save', 'modern-file-manager'))
+							)
+						),
+						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
+							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-manager')) : null,
+							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })
+						)
+					)
+				) : null,
+				h('div', { className: 'mfm-toast-stack', 'aria-live': 'polite' },
+					toasts.map((item) => h('div', { key: item.id, className: `mfm-toast is-${item.type}` }, item.message))
+				)
 		);
 	}
 

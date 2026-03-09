@@ -395,6 +395,71 @@ class Filesystem_Service {
 	}
 
 	/**
+	 * Read text file content.
+	 *
+	 * @param string $path Relative path.
+	 * @return array|WP_Error
+	 */
+	public function read_file( $path ) {
+		$resolved = $this->resolve_existing_path( $path );
+		if ( is_wp_error( $resolved ) ) {
+			return $resolved;
+		}
+		if ( ! is_file( $resolved ) ) {
+			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-manager' ), array( 'status' => 400 ) );
+		}
+		if ( ! is_readable( $resolved ) ) {
+			return new WP_Error( 'forbidden', __( 'File is not readable.', 'modern-file-manager' ), array( 'status' => 403 ) );
+		}
+
+		$size = @filesize( $resolved );
+		if ( false !== $size && $size > 1024 * 1024 * 2 ) {
+			return new WP_Error( 'file_too_large', __( 'File exceeds 2 MB editor limit.', 'modern-file-manager' ), array( 'status' => 413 ) );
+		}
+
+		$content = @file_get_contents( $resolved );
+		if ( false === $content ) {
+			return new WP_Error( 'io_error', __( 'Unable to read file.', 'modern-file-manager' ), array( 'status' => 500 ) );
+		}
+
+		return array(
+			'path'    => $this->to_relative_path( $resolved ),
+			'content' => (string) $content,
+		);
+	}
+
+	/**
+	 * Save text file content.
+	 *
+	 * @param string $path Relative path.
+	 * @param string $content File content.
+	 * @return array|WP_Error
+	 */
+	public function save_file( $path, $content ) {
+		$resolved = $this->resolve_existing_path( $path );
+		if ( is_wp_error( $resolved ) ) {
+			return $resolved;
+		}
+		if ( ! is_file( $resolved ) ) {
+			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-manager' ), array( 'status' => 400 ) );
+		}
+		if ( ! is_writable( $resolved ) ) {
+			return new WP_Error( 'forbidden', __( 'File is not writable.', 'modern-file-manager' ), array( 'status' => 403 ) );
+		}
+
+		$written = @file_put_contents( $resolved, (string) $content, LOCK_EX );
+		if ( false === $written ) {
+			return new WP_Error( 'io_error', __( 'Unable to save file.', 'modern-file-manager' ), array( 'status' => 500 ) );
+		}
+
+		return array(
+			'path'    => $this->to_relative_path( $resolved ),
+			'bytes'   => (int) $written,
+			'updated' => (int) @filemtime( $resolved ),
+		);
+	}
+
+	/**
 	 * Normalize and sanitize path string.
 	 *
 	 * @param mixed $path Path.

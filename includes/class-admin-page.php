@@ -78,9 +78,17 @@ class Admin_Page {
 		);
 
 		wp_enqueue_script(
+			'mfm-codemirror-bundle',
+			MFM_PLUGIN_URL . 'assets/js/codemirror-bundle.js',
+			array(),
+			MFM_VERSION,
+			true
+		);
+
+		wp_enqueue_script(
 			'mfm-admin-script',
 			MFM_PLUGIN_URL . 'assets/js/admin-app.js',
-			array( 'wp-element', 'wp-i18n' ),
+			array( 'wp-element', 'wp-i18n', 'mfm-codemirror-bundle' ),
 			MFM_VERSION,
 			true
 		);

@@ -144,6 +144,26 @@ class Rest_Controller {
 				'callback'            => array( $this, 'download_file' ),
 			)
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/read-file',
+			array(
+				'methods'             => 'GET',
+				'permission_callback' => array( $this, 'permission_check' ),
+				'callback'            => array( $this, 'read_file' ),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/save-file',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => array( $this, 'permission_check' ),
+				'callback'            => array( $this, 'save_file' ),
+			)
+		);
 	}
 
 	/**
@@ -314,6 +334,33 @@ class Rest_Controller {
 		header( 'Content-Length: ' . (string) filesize( $resolved ) );
 		readfile( $resolved );
 		exit;
+	}
+
+	/**
+	 * GET /read-file.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function read_file( WP_REST_Request $request ) {
+		$path   = $this->filesystem->sanitize_relative_path( $request->get_param( 'path' ) );
+		$result = $this->filesystem->read_file( $path );
+
+		return $this->respond( $result, array( 'path' => $path ) );
+	}
+
+	/**
+	 * POST /save-file.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function save_file( WP_REST_Request $request ) {
+		$path    = $this->filesystem->sanitize_relative_path( $request->get_param( 'path' ) );
+		$content = (string) $request->get_param( 'content' );
+		$result  = $this->filesystem->save_file( $path, $content );
+
+		return $this->respond( $result, array( 'path' => $path ) );
 	}
 
 	/**

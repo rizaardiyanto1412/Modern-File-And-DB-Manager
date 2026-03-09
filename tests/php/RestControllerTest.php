@@ -230,6 +230,51 @@ class RestControllerTest extends TestCase {
 		$this->assertArrayHasKey( 'details', $data );
 	}
 
+	public function test_read_file_endpoint_success(): void {
+		file_put_contents( $this->root . '/safe-dir/read-me.php', "<?php\nfunction abc() { return true; }\n" );
+
+		$request = new \WP_REST_Request( 'GET', '/modern-file-manager/v1/read-file' );
+		$request->set_param( 'path', '/safe-dir/read-me.php' );
+
+		$response = $this->controller->read_file( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertTrue( $data['ok'] );
+		$this->assertSame( '/safe-dir/read-me.php', $data['data']['path'] );
+		$this->assertStringContainsString( 'function abc()', $data['data']['content'] );
+	}
+
+	public function test_save_file_endpoint_success(): void {
+		file_put_contents( $this->root . '/safe-dir/write-me.php', "<?php\n" );
+
+		$request = new \WP_REST_Request( 'POST', '/modern-file-manager/v1/save-file' );
+		$request->set_param( 'path', '/safe-dir/write-me.php' );
+		$request->set_param( 'content', "<?php\nfunction saved_fn() { return 'ok'; }\n" );
+
+		$response = $this->controller->save_file( $request );
+		$data     = $response->get_data();
+		$content  = file_get_contents( $this->root . '/safe-dir/write-me.php' );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertTrue( $data['ok'] );
+		$this->assertSame( '/safe-dir/write-me.php', $data['data']['path'] );
+		$this->assertStringContainsString( 'saved_fn', (string) $content );
+	}
+
+	public function test_save_file_endpoint_on_directory_returns_standard_error(): void {
+		$request = new \WP_REST_Request( 'POST', '/modern-file-manager/v1/save-file' );
+		$request->set_param( 'path', '/safe-dir' );
+		$request->set_param( 'content', 'not valid target' );
+
+		$response = $this->controller->save_file( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertFalse( $data['ok'] );
+		$this->assertSame( 'invalid_path', $data['code'] );
+	}
+
 	private function rrmdir( string $dir ): void {
 		if ( ! is_dir( $dir ) ) {
 			return;

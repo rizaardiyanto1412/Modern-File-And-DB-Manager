@@ -1,11 +1,20 @@
 {
-  "name": "modern-file-manager-tests",
+  "name": "modern-file-manager-tools",
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "build:cm": "esbuild assets/js/codemirror-bundle-src.js --bundle --format=iife --target=es2019 --outfile=assets/js/codemirror-bundle.js --minify",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.53.1"
+    "@playwright/test": "^1.53.1",
+    "esbuild": "^0.25.10"
+  },
+  "dependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/lang-php": "^6.0.2",
+    "codemirror": "^6.0.2"
   }
 }

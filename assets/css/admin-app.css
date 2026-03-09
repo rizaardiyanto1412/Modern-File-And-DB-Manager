@@ -362,6 +362,94 @@
 	background: #1d7f5f;
 }
 
+.mfm-editor-modal {
+	position: fixed;
+	inset: 0;
+	background: rgba(17, 23, 35, 0.48);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100001;
+	padding: 24px;
+}
+
+.mfm-editor-window {
+	width: min(1120px, 96vw);
+	height: min(78vh, 780px);
+	background: #fff;
+	border: 1px solid var(--mfm-border);
+	border-radius: 14px;
+	box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.mfm-editor-topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 14px;
+	border-bottom: 1px solid #e6ebf2;
+	background: #f7f9fc;
+}
+
+.mfm-editor-path {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 12px;
+	color: #40526a;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mfm-editor-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mfm-editor-host {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	background: #fff;
+}
+
+.mfm-editor-cm-root,
+.mfm-editor-cm-root .cm-editor {
+	height: 100%;
+}
+
+.mfm-editor-cm-root .cm-scroller {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.mfm-editor-cm-root .cm-gutters {
+	background: #f8fbff;
+	border-right: 1px solid #e6ecf5;
+}
+
+.mfm-editor-cm-root .cm-foldGutter .cm-gutterElement {
+	color: #6d7f95;
+	cursor: pointer;
+}
+
+.mfm-editor-loading {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.78);
+	z-index: 2;
+	font-weight: 600;
+	color: #4f627a;
+}
+
 @keyframes mfm-shimmer {
 	0% {
 		background-position: 100% 50%;
@@ -434,5 +522,14 @@
 	.mfm-table td {
 		padding: 8px;
 		font-size: 12px;
+	}
+
+	.mfm-editor-modal {
+		padding: 8px;
+	}
+
+	.mfm-editor-window {
+		height: 90vh;
+		width: 100%;
 	}
 }

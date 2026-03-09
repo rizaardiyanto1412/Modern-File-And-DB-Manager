@@ -9,6 +9,7 @@ Modern File Manager is an admin-only WordPress plugin that provides a single-pag
 - Create folder and file
 - Rename, move, copy, delete
 - Upload and download
+- In-app code editor (CodeMirror 6) with syntax highlight and fold gutter
 - Breadcrumb navigation, search, sorting, detail panel
 - Keyboard shortcuts:
   - `Ctrl/Cmd + R`: refresh current folder
@@ -37,6 +38,8 @@ Base: `/wp-json/modern-file-manager/v1`
 - `POST /delete`
 - `POST /upload`
 - `GET /download?path=/...`
+- `GET /read-file?path=/...`
+- `POST /save-file`
 
 Success response:
 
@@ -111,4 +114,5 @@ Notes:
 ## Notes
 
 - The plugin currently uses direct filesystem functions with strict policy checks.
+- CodeMirror 6 is bundled locally in `assets/js/codemirror-bundle.js` (no CDN runtime dependency).
 - For environments requiring alternate filesystem transport (FTP/SSH), extend `Filesystem_Service` to integrate `WP_Filesystem` transport selection.
