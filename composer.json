@@ -1,0 +1,16 @@
+{
+  "name": "modern-file-manager/plugin",
+  "description": "Modern File Manager plugin test tooling",
+  "type": "project",
+  "require-dev": {
+    "phpunit/phpunit": "^10.5"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "ModernFileManager\\Tests\\": "tests/php/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --configuration phpunit.xml.dist"
+  }
+}

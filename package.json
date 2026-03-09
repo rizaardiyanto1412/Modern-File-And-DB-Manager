@@ -1,0 +1,11 @@
+{
+  "name": "modern-file-manager-tests",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.1"
+  }
+}
