@@ -129,6 +129,18 @@
 			path2 = 'M8 13.5h4M14 13.5h2M8 16.5h8';
 		} else if (icon === 'file-css') {
 			path2 = 'M8 12.5h8M8 15.5h6';
+		} else if (icon === 'file-json') {
+			path2 = 'M9.5 12.5h.01M14.5 12.5h.01M10 15.5h4';
+		} else if (icon === 'file-md') {
+			path2 = 'M8 15.5v-3l2 2 2-2v3m1-3h3';
+		} else if (icon === 'file-yml') {
+			path2 = 'M8 12.5l2 2 2-2 2 2 2-2';
+		} else if (icon === 'file-svg') {
+			path2 = 'M8.5 15.5 12 10.5 15.5 15.5 12 18.5Z';
+		} else if (icon === 'file-image') {
+			path2 = 'M8 16l3-3 2 2 3-3 2 4';
+		} else if (icon === 'file-zip') {
+			path2 = 'M12 9v8m0-8h0m0 2h0m0 2h0m0 2h0';
 		}
 
 		return h(
@@ -152,6 +164,12 @@
 		if (ext === 'php' || ext === 'phtml') return 'file-php';
 		if (ext === 'js' || ext === 'mjs' || ext === 'cjs') return 'file-js';
 		if (ext === 'css' || ext === 'scss' || ext === 'less') return 'file-css';
+		if (ext === 'json') return 'file-json';
+		if (ext === 'md' || ext === 'markdown') return 'file-md';
+		if (ext === 'yml' || ext === 'yaml') return 'file-yml';
+		if (ext === 'svg') return 'file-svg';
+		if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'gif' || ext === 'webp' || ext === 'bmp') return 'file-image';
+		if (ext === 'zip' || ext === 'rar' || ext === 'tar' || ext === 'gz' || ext === '7z') return 'file-zip';
 		return 'file';
 	}
 

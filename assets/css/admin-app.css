@@ -284,6 +284,30 @@
 	color: #2d8ecb;
 }
 
+.mfm-icon--file-json {
+	color: #b17b11;
+}
+
+.mfm-icon--file-md {
+	color: #4c78c2;
+}
+
+.mfm-icon--file-yml {
+	color: #6f6bbf;
+}
+
+.mfm-icon--file-svg {
+	color: #d67a1a;
+}
+
+.mfm-icon--file-image {
+	color: #2f9f88;
+}
+
+.mfm-icon--file-zip {
+	color: #8b6d52;
+}
+
 .mfm-btn .mfm-icon {
 	width: 14px;
 	height: 14px;
