@@ -6,6 +6,8 @@
 	const { createElement: h, Fragment, useEffect, useMemo, useState, useRef } = wp.element;
 	const { __ } = wp.i18n;
 	const endpoint = (config.restUrl || '').replace(/\/$/, '');
+	const editorThemeStorageKey = 'mfmEditorTheme';
+	const editorThemeOptions = ['light', 'one-dark', 'monokai', 'solarized-dark', 'tokyo-night-storm', 'nord'];
 
 	function buildUrl(route, queryParams) {
 		const cleanRoute = String(route || '').replace(/^\/+/, '');
@@ -177,7 +179,16 @@
 		}
 
 		cmModulesPromise = new Promise((resolve, reject) => {
-			if (window.MFMCodeMirror && window.MFMCodeMirror.EditorState) {
+			if (
+				window.MFMCodeMirror &&
+				window.MFMCodeMirror.EditorState &&
+				window.MFMCodeMirror.Compartment &&
+				window.MFMCodeMirror.oneDark &&
+				window.MFMCodeMirror.monokai &&
+				window.MFMCodeMirror.solarizedDark &&
+				window.MFMCodeMirror.tokyoNightStorm &&
+				window.MFMCodeMirror.nord
+			) {
 				resolve(window.MFMCodeMirror);
 				return;
 			}
@@ -194,6 +205,25 @@
 		if (ext === 'css' || ext === 'scss' || ext === 'less') return cm.css();
 		if (ext === 'html' || ext === 'htm' || ext === 'xml') return cm.html();
 		return cm.php();
+	}
+
+	function getInitialEditorTheme() {
+		try {
+			const stored = window.localStorage.getItem(editorThemeStorageKey);
+			if (stored === 'dark') return 'one-dark';
+			return editorThemeOptions.includes(stored) ? stored : 'light';
+		} catch (error) {
+			return 'light';
+		}
+	}
+
+	function getEditorThemeExtensions(theme, cm) {
+		if (theme === 'one-dark') return [cm.oneDark];
+		if (theme === 'monokai') return [cm.monokai];
+		if (theme === 'solarized-dark') return [cm.solarizedDark];
+		if (theme === 'tokyo-night-storm') return [cm.tokyoNightStorm];
+		if (theme === 'nord') return [cm.nord];
+		return [cm.syntaxHighlighting(cm.defaultHighlightStyle, { fallback: true })];
 	}
 
 		function App() {
@@ -213,10 +243,12 @@
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
 			const [editorSaving, setEditorSaving] = useState(false);
-		const fileInputRef = useRef(null);
-		const reqRef = useRef({ id: 0 });
-		const editorHostRef = useRef(null);
-		const editorViewRef = useRef(null);
+			const [editorTheme, setEditorTheme] = useState(getInitialEditorTheme);
+			const fileInputRef = useRef(null);
+			const reqRef = useRef({ id: 0 });
+			const editorHostRef = useRef(null);
+			const editorViewRef = useRef(null);
+			const editorThemeCompartmentRef = useRef(null);
 
 		const selectedItems = useMemo(
 			() => items.filter((item) => selected[item.path]),
@@ -392,6 +424,25 @@
 			};
 		}, [contextMenu.open]);
 
+		useEffect(() => {
+			try {
+				window.localStorage.setItem(editorThemeStorageKey, editorTheme);
+			} catch (error) {
+				// Ignore storage errors.
+			}
+
+			const editorView = editorViewRef.current;
+			const cm = window.MFMCodeMirror;
+			const compartment = editorThemeCompartmentRef.current;
+			if (!editorView || !cm || !compartment) {
+				return;
+			}
+
+			editorView.dispatch({
+				effects: compartment.reconfigure(getEditorThemeExtensions(editorTheme, cm)),
+			});
+		}, [editorTheme]);
+
 		function toggleSort(nextKey) {
 			if (sortKey === nextKey) {
 				setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'));
@@ -560,6 +611,9 @@
 					editorViewRef.current = null;
 				}
 
+				const themeCompartment = new cm.Compartment();
+				editorThemeCompartmentRef.current = themeCompartment;
+
 				const extensions = [
 					cm.lineNumbers(),
 					cm.highlightActiveLineGutter(),
@@ -569,7 +623,7 @@
 					cm.codeFolding(),
 					cm.foldGutter(),
 					cm.autocompletion(),
-					cm.syntaxHighlighting(cm.defaultHighlightStyle, { fallback: true }),
+					themeCompartment.of(getEditorThemeExtensions(editorTheme, cm)),
 					cm.keymap.of([
 						cm.indentWithTab,
 						...cm.defaultKeymap,
@@ -602,6 +656,7 @@
 				editorViewRef.current.destroy();
 				editorViewRef.current = null;
 			}
+			editorThemeCompartmentRef.current = null;
 			setEditorOpen(false);
 			setEditorPath('');
 		}
@@ -906,14 +961,33 @@
 					h('div', {
 						className: 'mfm-editor-window',
 						onClick: (event) => event.stopPropagation(),
-					},
-						h('div', { className: 'mfm-editor-topbar' },
-							h('strong', { className: 'mfm-editor-path' }, editorPath || __('Editor', 'modern-file-manager')),
-							h('div', { className: 'mfm-editor-actions' },
-								h('button', { type: 'button', className: 'button', onClick: closeEditor }, __('Close', 'modern-file-manager')),
-								h('button', { type: 'button', className: 'button button-primary', onClick: saveEditor, disabled: editorSaving || editorLoading }, editorSaving ? __('Saving...', 'modern-file-manager') : __('Save', 'modern-file-manager'))
-							)
-						),
+						},
+							h('div', { className: 'mfm-editor-topbar' },
+								h('strong', { className: 'mfm-editor-path' }, editorPath || __('Editor', 'modern-file-manager')),
+								h('div', { className: 'mfm-editor-actions' },
+									h(
+										'label',
+										{ className: 'mfm-editor-theme' },
+										h('span', null, __('Theme', 'modern-file-manager')),
+										h(
+											'select',
+											{
+												value: editorTheme,
+												onChange: (event) => setEditorTheme(editorThemeOptions.includes(event.target.value) ? event.target.value : 'light'),
+												'aria-label': __('Editor theme', 'modern-file-manager'),
+											},
+											h('option', { value: 'light' }, __('Light', 'modern-file-manager')),
+											h('option', { value: 'one-dark' }, __('One Dark', 'modern-file-manager')),
+											h('option', { value: 'monokai' }, __('Monokai', 'modern-file-manager')),
+											h('option', { value: 'solarized-dark' }, __('Solarized Dark', 'modern-file-manager')),
+											h('option', { value: 'tokyo-night-storm' }, __('Tokyo Night', 'modern-file-manager')),
+											h('option', { value: 'nord' }, __('Nord', 'modern-file-manager'))
+										)
+									),
+									h('button', { type: 'button', className: 'button', onClick: closeEditor }, __('Close', 'modern-file-manager')),
+									h('button', { type: 'button', className: 'button button-primary', onClick: saveEditor, disabled: editorSaving || editorLoading }, editorSaving ? __('Saving...', 'modern-file-manager') : __('Save', 'modern-file-manager'))
+								)
+							),
 						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
 							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-manager')) : null,
 							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })

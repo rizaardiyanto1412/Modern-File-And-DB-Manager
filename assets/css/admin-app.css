@@ -556,6 +556,23 @@
 	gap: 8px;
 }
 
+.mfm-editor-theme {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: #55657b;
+}
+
+.mfm-editor-theme select {
+	border: 1px solid #cbd5e2;
+	border-radius: 8px;
+	padding: 4px 8px;
+	background: #fff;
+	color: #2e3c4e;
+	font-size: 12px;
+}
+
 .mfm-editor-host {
 	position: relative;
 	flex: 1;
@@ -574,13 +591,8 @@
 	line-height: 1.5;
 }
 
-.mfm-editor-cm-root .cm-gutters {
-	background: #f8fbff;
-	border-right: 1px solid #e6ecf5;
-}
-
 .mfm-editor-cm-root .cm-foldGutter .cm-gutterElement {
-	color: #6d7f95;
+	color: inherit;
 	cursor: pointer;
 }
 

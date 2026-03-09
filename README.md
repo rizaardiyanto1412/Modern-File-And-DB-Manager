@@ -9,7 +9,7 @@ Modern File Manager is an admin-only WordPress plugin that provides a single-pag
 - Create folder and file
 - Rename, move, copy, delete
 - Upload and download
-- In-app code editor (CodeMirror 6) with syntax highlight and fold gutter
+- In-app code editor (CodeMirror 6) with syntax highlight, fold gutter, and theme switcher (`Light`, `One Dark`, `Monokai`, `Solarized Dark`, `Tokyo Night`, `Nord`)
 - Breadcrumb navigation, search, sorting, detail panel
 - Keyboard shortcuts:
   - `Ctrl/Cmd + R`: refresh current folder
