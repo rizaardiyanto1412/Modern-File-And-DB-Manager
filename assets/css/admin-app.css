@@ -362,6 +362,40 @@
 	background: #1d7f5f;
 }
 
+.mfm-context-menu {
+	position: fixed;
+	min-width: 190px;
+	background: #fff;
+	border: 1px solid #d7dfeb;
+	border-radius: 10px;
+	box-shadow: 0 14px 32px rgba(16, 24, 40, 0.24);
+	padding: 6px;
+	z-index: 100002;
+}
+
+.mfm-context-item {
+	display: block;
+	width: 100%;
+	border: 0;
+	background: transparent;
+	text-align: left;
+	padding: 8px 10px;
+	border-radius: 8px;
+	color: #304156;
+	cursor: pointer;
+	transition: background var(--mfm-transition), color var(--mfm-transition);
+}
+
+.mfm-context-item:hover {
+	background: #edf3ff;
+	color: #244c9d;
+}
+
+.mfm-context-item.is-danger:hover {
+	background: #ffeff2;
+	color: #b8283f;
+}
+
 .mfm-editor-modal {
 	position: fixed;
 	inset: 0;

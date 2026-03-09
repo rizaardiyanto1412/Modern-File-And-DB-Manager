@@ -20,11 +20,13 @@
 ## UX and Interaction
 
 1. Navigate folders and verify no full page reload.
-2. Use breadcrumb navigation.
-3. Search and sort in current folder.
-4. Use shortcuts: `Delete`, `F2`, `Ctrl/Cmd + R`.
-5. Verify responsive behavior in narrow viewport.
-6. Verify focus ring appears when navigating via keyboard.
+2. Right-click a file row and verify context menu shows edit/rename/move/copy/download/delete.
+3. Right-click a folder row and verify context menu shows folder-appropriate actions.
+4. Use breadcrumb navigation.
+5. Search and sort in current folder.
+6. Use shortcuts: `Delete`, `F2`, `Ctrl/Cmd + R`.
+7. Verify responsive behavior in narrow viewport.
+8. Verify focus ring appears when navigating via keyboard.
 
 ## Editor
 

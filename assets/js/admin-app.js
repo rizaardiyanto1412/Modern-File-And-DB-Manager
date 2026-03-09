@@ -168,12 +168,13 @@
 		const [search, setSearch] = useState('');
 		const [sortKey, setSortKey] = useState('name');
 		const [sortDir, setSortDir] = useState('asc');
-		const [toasts, setToasts] = useState([]);
-		const [directoriesByPath, setDirectoriesByPath] = useState({ '/': [] });
-		const [pathHistory, setPathHistory] = useState(['/']);
-		const [editorOpen, setEditorOpen] = useState(false);
-		const [editorPath, setEditorPath] = useState('');
-		const [editorLoading, setEditorLoading] = useState(false);
+			const [toasts, setToasts] = useState([]);
+			const [directoriesByPath, setDirectoriesByPath] = useState({ '/': [] });
+			const [pathHistory, setPathHistory] = useState(['/']);
+			const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, item: null });
+			const [editorOpen, setEditorOpen] = useState(false);
+			const [editorPath, setEditorPath] = useState('');
+			const [editorLoading, setEditorLoading] = useState(false);
 		const [editorSaving, setEditorSaving] = useState(false);
 		const fileInputRef = useRef(null);
 		const reqRef = useRef({ id: 0 });
@@ -305,6 +306,33 @@
 			}
 		}, []);
 
+		useEffect(() => {
+			if (!contextMenu.open) {
+				return undefined;
+			}
+
+			function closeMenuOnOutside() {
+				setContextMenu({ open: false, x: 0, y: 0, item: null });
+			}
+
+			function closeOnEscape(event) {
+				if (event.key === 'Escape') {
+					closeMenuOnOutside();
+				}
+			}
+
+			window.addEventListener('click', closeMenuOnOutside);
+			window.addEventListener('contextmenu', closeMenuOnOutside);
+			window.addEventListener('keydown', closeOnEscape);
+			window.addEventListener('resize', closeMenuOnOutside);
+			return () => {
+				window.removeEventListener('click', closeMenuOnOutside);
+				window.removeEventListener('contextmenu', closeMenuOnOutside);
+				window.removeEventListener('keydown', closeOnEscape);
+				window.removeEventListener('resize', closeMenuOnOutside);
+			};
+		}, [contextMenu.open]);
+
 		function toggleSort(nextKey) {
 			if (sortKey === nextKey) {
 				setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'));
@@ -346,12 +374,12 @@
 			}
 		}
 
-		async function handleRename() {
-			if (selectedItems.length !== 1) {
+		async function handleRename(targetItem) {
+			const current = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
+			if (!current) {
 				toast('error', __('Select exactly one item to rename.', 'modern-file-manager'));
 				return;
 			}
-			const current = selectedItems[0];
 			const newName = window.prompt(__('New name:', 'modern-file-manager'), current.name);
 			if (!newName || newName === current.name) return;
 			try {
@@ -363,8 +391,9 @@
 			}
 		}
 
-		async function handleDelete() {
-			if (!selectedItems.length) {
+		async function handleDelete(targetItems) {
+			const itemsToDelete = Array.isArray(targetItems) ? targetItems : selectedItems;
+			if (!itemsToDelete.length) {
 				toast('error', __('Select at least one item.', 'modern-file-manager'));
 				return;
 			}
@@ -374,10 +403,10 @@
 			if (!confirmDelete) return;
 
 			try {
-				await apiFetch('/delete', {
-					method: 'POST',
-					body: { paths: selectedItems.map((item) => item.path) },
-				});
+					await apiFetch('/delete', {
+						method: 'POST',
+						body: { paths: itemsToDelete.map((item) => item.path) },
+					});
 				toast('success', __('Items deleted.', 'modern-file-manager'));
 				refresh(path);
 			} catch (error) {
@@ -385,8 +414,9 @@
 			}
 		}
 
-		async function handleMove(isCopy) {
-			if (selectedItems.length !== 1) {
+		async function handleMove(isCopy, targetItem) {
+			const itemToMove = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
+			if (!itemToMove) {
 				toast('error', __('Select exactly one item.', 'modern-file-manager'));
 				return;
 			}
@@ -397,13 +427,13 @@
 			if (!destination) return;
 
 			try {
-				await apiFetch(isCopy ? '/copy' : '/move', {
-					method: 'POST',
-					body: {
-						source: selectedItems[0].path,
-						destination: normalizePath(destination),
-					},
-				});
+					await apiFetch(isCopy ? '/copy' : '/move', {
+						method: 'POST',
+						body: {
+							source: itemToMove.path,
+							destination: normalizePath(destination),
+						},
+					});
 				toast('success', isCopy ? __('Item copied.', 'modern-file-manager') : __('Item moved.', 'modern-file-manager'));
 				refresh(path);
 			} catch (error) {
@@ -435,13 +465,14 @@
 			}
 		}
 
-		function handleDownload() {
-			if (selectedItems.length !== 1 || selectedItems[0].type !== 'file') {
+		function handleDownload(targetItem) {
+			const itemToDownload = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
+			if (!itemToDownload || itemToDownload.type !== 'file') {
 				toast('error', __('Select one file to download.', 'modern-file-manager'));
 				return;
 			}
 			const target = buildUrl('/download', {
-				path: selectedItems[0].path,
+				path: itemToDownload.path,
 				_wpnonce: config.nonce,
 			});
 			window.open(target, '_blank', 'noopener');
@@ -539,12 +570,48 @@
 			}
 		}
 
-		function handleEditSelected() {
-			if (selectedItems.length !== 1 || selectedItems[0].type !== 'file') {
+		function handleEdit(targetItem) {
+			const itemToEdit = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
+			if (!itemToEdit || itemToEdit.type !== 'file') {
 				toast('error', __('Select one file to edit.', 'modern-file-manager'));
 				return;
 			}
-			openEditorForPath(selectedItems[0].path);
+			openEditorForPath(itemToEdit.path);
+		}
+
+		function openItem(item) {
+			if (!item) return;
+			if (item.type === 'dir') {
+				refresh(item.path);
+				return;
+			}
+			openEditorForPath(item.path);
+		}
+
+		function openContextMenu(event, item) {
+			event.preventDefault();
+			event.stopPropagation();
+			selectOnly(item.path);
+			setContextMenu({
+				open: true,
+				x: event.clientX,
+				y: event.clientY,
+				item,
+			});
+		}
+
+		function runContextAction(action) {
+			const item = contextMenu.item;
+			setContextMenu({ open: false, x: 0, y: 0, item: null });
+			if (!item) return;
+
+			if (action === 'open') openItem(item);
+			if (action === 'edit') handleEdit(item);
+			if (action === 'rename') handleRename(item);
+			if (action === 'move') handleMove(false, item);
+			if (action === 'copy') handleMove(true, item);
+			if (action === 'download') handleDownload(item);
+			if (action === 'delete') handleDelete([item]);
 		}
 
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
@@ -555,18 +622,12 @@
 			h(
 				'div',
 				{ className: 'mfm-topbar' },
-				h('div', { className: 'mfm-actions' },
-					h('button', { className: 'button button-primary mfm-btn', onClick: handleCreateFolder }, h(Icon, { name: 'folder-add' }), h('span', null, __('New Folder', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: handleCreateFile }, h(Icon, { name: 'file-add' }), h('span', null, __('New File', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: handleUploadClick }, h(Icon, { name: 'upload' }), h('span', null, __('Upload', 'modern-file-manager'))),
-						h('button', { className: 'button mfm-btn', onClick: handleRename }, h(Icon, { name: 'edit' }), h('span', null, __('Rename', 'modern-file-manager'))),
-						h('button', { className: 'button mfm-btn', onClick: handleEditSelected }, h(Icon, { name: 'edit' }), h('span', null, __('Edit', 'modern-file-manager'))),
-						h('button', { className: 'button mfm-btn', onClick: () => handleMove(false) }, h(Icon, { name: 'move' }), h('span', null, __('Move', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: () => handleMove(true) }, h(Icon, { name: 'copy' }), h('span', null, __('Copy', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: handleDelete }, h(Icon, { name: 'trash' }), h('span', null, __('Delete', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: handleDownload }, h(Icon, { name: 'download' }), h('span', null, __('Download', 'modern-file-manager'))),
-					h('button', { className: 'button mfm-btn', onClick: () => refresh(path) }, h(Icon, { name: 'refresh' }), h('span', null, __('Refresh', 'modern-file-manager')))
-				),
+					h('div', { className: 'mfm-actions' },
+						h('button', { className: 'button button-primary mfm-btn', onClick: handleCreateFolder }, h(Icon, { name: 'folder-add' }), h('span', null, __('New Folder', 'modern-file-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: handleCreateFile }, h(Icon, { name: 'file-add' }), h('span', null, __('New File', 'modern-file-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: handleUploadClick }, h(Icon, { name: 'upload' }), h('span', null, __('Upload', 'modern-file-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: () => refresh(path) }, h(Icon, { name: 'refresh' }), h('span', null, __('Refresh', 'modern-file-manager')))
+					),
 				h('div', { className: 'mfm-search-wrap' },
 					h('input', {
 						type: 'search',
@@ -648,6 +709,7 @@
 												key: item.path,
 												className: selected[item.path] ? 'is-selected' : '',
 												onDoubleClick: () => (item.type === 'dir' ? refresh(item.path) : openEditorForPath(item.path)),
+												onContextMenu: (event) => openContextMenu(event, item),
 											},
 											h('td', { className: 'mfm-col-check' },
 												h('input', {
@@ -695,6 +757,19 @@
 				)
 				)
 				,
+				contextMenu.open ? h('div', {
+					className: 'mfm-context-menu',
+					style: { left: `${contextMenu.x}px`, top: `${contextMenu.y}px` },
+					onClick: (event) => event.stopPropagation(),
+				},
+					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open') }, contextMenu.item && contextMenu.item.type === 'dir' ? __('Open Folder', 'modern-file-manager') : __('Open / Edit', 'modern-file-manager')),
+					contextMenu.item && contextMenu.item.type === 'file' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('edit') }, __('Edit File', 'modern-file-manager')) : null,
+					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('rename') }, __('Rename', 'modern-file-manager')),
+					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('move') }, __('Move', 'modern-file-manager')),
+					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('copy') }, __('Copy', 'modern-file-manager')),
+					contextMenu.item && contextMenu.item.type === 'file' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('download') }, __('Download', 'modern-file-manager')) : null,
+					h('button', { type: 'button', className: 'mfm-context-item is-danger', onClick: () => runContextAction('delete') }, __('Delete', 'modern-file-manager'))
+				) : null,
 				editorOpen ? h('div', { className: 'mfm-editor-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': __('File editor', 'modern-file-manager') },
 					h('div', { className: 'mfm-editor-window' },
 						h('div', { className: 'mfm-editor-topbar' },
