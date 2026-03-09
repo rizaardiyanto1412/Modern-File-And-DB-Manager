@@ -20,13 +20,15 @@
 ## UX and Interaction
 
 1. Navigate folders and verify no full page reload.
-2. Right-click a file row and verify context menu shows edit/rename/move/copy/download/delete.
-3. Right-click a folder row and verify context menu shows folder-appropriate actions.
-4. Use breadcrumb navigation.
-5. Search and sort in current folder.
-6. Use shortcuts: `Delete`, `F2`, `Ctrl/Cmd + R`.
-7. Verify responsive behavior in narrow viewport.
-8. Verify focus ring appears when navigating via keyboard.
+2. Expand/collapse nested nodes in the left folder tree and verify lazy loading works.
+3. Click a nested tree folder and verify main table updates to that path.
+4. Right-click a file row and verify context menu shows edit/rename/move/copy/download/delete.
+5. Right-click a folder row and verify context menu shows folder-appropriate actions.
+6. Use breadcrumb navigation.
+7. Search and sort in current folder.
+8. Use shortcuts: `Delete`, `F2`, `Ctrl/Cmd + R`.
+9. Verify responsive behavior in narrow viewport.
+10. Verify focus ring appears when navigating via keyboard.
 
 ## Editor
 

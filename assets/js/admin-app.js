@@ -50,14 +50,6 @@
 		return `/${String(path).replace(/^\/+/, '').replace(/\/+$/, '')}`;
 	}
 
-	function parentPath(path) {
-		const current = normalizePath(path);
-		if (current === '/') return '/';
-		const bits = current.split('/').filter(Boolean);
-		bits.pop();
-		return bits.length ? `/${bits.join('/')}` : '/';
-	}
-
 	async function apiFetch(route, options) {
 		const opts = options || {};
 		const isFormData = opts.body instanceof FormData;
@@ -141,6 +133,10 @@
 			path2 = 'M8 16l3-3 2 2 3-3 2 4';
 		} else if (icon === 'file-zip') {
 			path2 = 'M12 9v8m0-8h0m0 2h0m0 2h0m0 2h0';
+		} else if (icon === 'chevron-right') {
+			path = 'M9 6l6 6-6 6';
+		} else if (icon === 'chevron-down') {
+			path = 'M6 9l6 6 6-6';
 		}
 
 		return h(
@@ -200,22 +196,23 @@
 		return cm.php();
 	}
 
-	function App() {
-		const [path, setPath] = useState(normalizePath(config.initialPath || '/'));
-		const [items, setItems] = useState([]);
-		const [loading, setLoading] = useState(false);
-		const [selected, setSelected] = useState({});
-		const [search, setSearch] = useState('');
-		const [sortKey, setSortKey] = useState('name');
-		const [sortDir, setSortDir] = useState('asc');
+		function App() {
+			const [path, setPath] = useState(normalizePath(config.initialPath || '/'));
+			const [items, setItems] = useState([]);
+			const [loading, setLoading] = useState(false);
+			const [selected, setSelected] = useState({});
+			const [search, setSearch] = useState('');
+			const [sortKey, setSortKey] = useState('name');
+			const [sortDir, setSortDir] = useState('asc');
 			const [toasts, setToasts] = useState([]);
-			const [directoriesByPath, setDirectoriesByPath] = useState({ '/': [] });
-			const [pathHistory, setPathHistory] = useState(['/']);
+			const [treeChildrenByPath, setTreeChildrenByPath] = useState({ '/': [] });
+			const [treeExpanded, setTreeExpanded] = useState({ '/': true });
+			const [treeLoadingByPath, setTreeLoadingByPath] = useState({});
 			const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, item: null });
 			const [editorOpen, setEditorOpen] = useState(false);
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
-		const [editorSaving, setEditorSaving] = useState(false);
+			const [editorSaving, setEditorSaving] = useState(false);
 		const fileInputRef = useRef(null);
 		const reqRef = useRef({ id: 0 });
 		const editorHostRef = useRef(null);
@@ -250,21 +247,6 @@
 			return sorted;
 		}, [items, search, sortKey, sortDir]);
 
-		const directoryShortcuts = useMemo(() => {
-			const current = directoriesByPath[path] || [];
-			const staticNodes = [
-				{ name: __('Root', 'modern-file-manager'), path: '/', type: 'dir' },
-				{ name: __('Parent', 'modern-file-manager'), path: parentPath(path), type: 'dir' },
-			];
-			const merged = staticNodes.concat(current.map((dir) => ({ name: dir.name, path: dir.path, type: 'dir' })));
-			const seen = new Set();
-			return merged.filter((item) => {
-				if (seen.has(item.path)) return false;
-				seen.add(item.path);
-				return true;
-			});
-		}, [directoriesByPath, path]);
-
 		const breadcrumbs = useMemo(() => {
 			const bits = path.split('/').filter(Boolean);
 			const list = [{ name: 'root', path: '/' }];
@@ -275,6 +257,43 @@
 			});
 			return list;
 		}, [path]);
+
+		function getAncestorPaths(targetPath) {
+			const normalized = normalizePath(targetPath);
+			if (normalized === '/') return ['/'];
+			const bits = normalized.split('/').filter(Boolean);
+			const ancestors = ['/'];
+			let running = '';
+			bits.forEach((segment) => {
+				running += `/${segment}`;
+				ancestors.push(running);
+			});
+			return ancestors;
+		}
+
+		async function ensureTreeChildren(folderPath, forceReload) {
+			const target = normalizePath(folderPath);
+			const hasCache = !!treeChildrenByPath[target];
+			if (hasCache && !forceReload) {
+				return;
+			}
+			if (treeLoadingByPath[target]) {
+				return;
+			}
+
+			setTreeLoadingByPath((current) => ({ ...current, [target]: true }));
+			try {
+				const data = await apiFetch('/list', { query: { path: target } });
+				const payload = data.data || {};
+				const listedItems = payload.items || [];
+				const onlyDirs = listedItems.filter((item) => item.type === 'dir');
+				setTreeChildrenByPath((current) => ({ ...current, [target]: onlyDirs }));
+			} catch (error) {
+				toast('error', error.message);
+			} finally {
+				setTreeLoadingByPath((current) => ({ ...current, [target]: false }));
+			}
+		}
 
 		function toast(type, message) {
 			const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -293,21 +312,21 @@
 				const data = await apiFetch('/list', { query: { path: target } });
 				if (reqRef.current.id !== reqId) return;
 				const payload = data.data || {};
-				const listedItems = payload.items || [];
-				setItems(listedItems);
-				setPath(payload.path || target);
-				setSelected({});
-				setDirectoriesByPath((current) => {
-					const next = { ...current };
-					next[target] = listedItems.filter((item) => item.type === 'dir');
-					return next;
-				});
-				setPathHistory((current) => {
-					if (current[current.length - 1] === target) return current;
-					return current.concat([target]).slice(-18);
-				});
-			} catch (error) {
-				toast('error', error.message);
+					const listedItems = payload.items || [];
+					const onlyDirs = listedItems.filter((item) => item.type === 'dir');
+					setItems(listedItems);
+					setPath(payload.path || target);
+					setSelected({});
+					setTreeChildrenByPath((current) => ({ ...current, [target]: onlyDirs }));
+					setTreeExpanded((current) => {
+						const next = { ...current };
+						getAncestorPaths(target).forEach((ancestorPath) => {
+							next[ancestorPath] = true;
+						});
+						return next;
+					});
+				} catch (error) {
+					toast('error', error.message);
 			} finally {
 				if (reqRef.current.id === reqId) {
 					setLoading(false);
@@ -654,6 +673,65 @@
 			if (action === 'open-folder' && item.type === 'dir') openItem(item);
 		}
 
+		async function toggleTreeNode(folderPath) {
+			const target = normalizePath(folderPath);
+			const isExpanded = !!treeExpanded[target];
+			if (isExpanded) {
+				setTreeExpanded((current) => ({ ...current, [target]: false }));
+				return;
+			}
+			setTreeExpanded((current) => ({ ...current, [target]: true }));
+			await ensureTreeChildren(target, false);
+		}
+
+		function renderTreeNodes(parentPath, depth) {
+			const children = treeChildrenByPath[parentPath] || [];
+			if (!children.length) {
+				if (treeLoadingByPath[parentPath]) {
+					return h('div', { className: 'mfm-tree-empty' }, __('Loading...', 'modern-file-manager'));
+				}
+				return null;
+			}
+
+			return children.map((node) => {
+				const expanded = !!treeExpanded[node.path];
+				const hasKnownChildren = Object.prototype.hasOwnProperty.call(treeChildrenByPath, node.path);
+				const isLoading = !!treeLoadingByPath[node.path];
+				const mayHaveChildren = !hasKnownChildren || (treeChildrenByPath[node.path] && treeChildrenByPath[node.path].length > 0);
+
+				return h(
+					'div',
+					{ key: node.path, className: 'mfm-tree-node-wrap' },
+					h(
+						'div',
+						{ className: `mfm-tree-node ${path === node.path ? 'is-active' : ''}`, style: { paddingLeft: `${depth * 14}px` } },
+						h(
+							'button',
+							{
+								type: 'button',
+								className: 'mfm-tree-toggle',
+								onClick: () => toggleTreeNode(node.path),
+								'aria-label': expanded ? __('Collapse folder', 'modern-file-manager') : __('Expand folder', 'modern-file-manager'),
+								disabled: !mayHaveChildren && !isLoading,
+							},
+							mayHaveChildren || isLoading ? h(Icon, { name: expanded ? 'chevron-down' : 'chevron-right' }) : null
+						),
+						h(
+							'button',
+							{
+								type: 'button',
+								className: 'mfm-tree-link',
+								onClick: () => refresh(node.path),
+							},
+							h(Icon, { name: 'folder' }),
+							h('span', null, node.name)
+						)
+					),
+					expanded ? renderTreeNodes(node.path, depth + 1) : null
+				);
+			});
+		}
+
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
 
 		return h(
@@ -697,27 +775,35 @@
 					)
 				)
 			),
-			h('div', { className: 'mfm-layout' },
-				h('aside', { className: 'mfm-sidebar', 'aria-label': __('Directory shortcuts', 'modern-file-manager') },
-					h('h2', null, __('Folders', 'modern-file-manager')),
-					directoryShortcuts.map((item) =>
-						h('button', {
-							key: item.path,
-							type: 'button',
-							className: `mfm-nav-item ${item.path === path ? 'is-active' : ''}`,
-							onClick: () => refresh(item.path),
-						}, item.name)
+				h('div', { className: 'mfm-layout' },
+					h('aside', { className: 'mfm-sidebar', 'aria-label': __('Directory shortcuts', 'modern-file-manager') },
+						h('h2', null, __('Folders', 'modern-file-manager')),
+						h(
+							'div',
+							{ className: 'mfm-tree-root' },
+							h(
+								'div',
+								{ className: `mfm-tree-node is-root ${path === '/' ? 'is-active' : ''}` },
+								h(
+									'button',
+									{
+										type: 'button',
+										className: 'mfm-tree-toggle',
+										onClick: () => toggleTreeNode('/'),
+										'aria-label': treeExpanded['/'] ? __('Collapse root', 'modern-file-manager') : __('Expand root', 'modern-file-manager'),
+									},
+									h(Icon, { name: treeExpanded['/'] ? 'chevron-down' : 'chevron-right' })
+								),
+								h(
+									'button',
+									{ type: 'button', className: 'mfm-tree-link', onClick: () => refresh('/') },
+									h(Icon, { name: 'folder' }),
+									h('span', null, __('Root', 'modern-file-manager'))
+								)
+							),
+							treeExpanded['/'] ? renderTreeNodes('/', 1) : null
+						)
 					),
-					h('h3', null, __('Recent', 'modern-file-manager')),
-					pathHistory.slice().reverse().map((recentPath) =>
-						h('button', {
-							key: recentPath,
-							type: 'button',
-							className: 'mfm-nav-item mfm-nav-item--recent',
-							onClick: () => refresh(recentPath),
-						}, recentPath)
-					)
-				),
 				h('main', { className: 'mfm-main' },
 					h('table', { className: 'mfm-table' },
 						h('thead', null,
