@@ -65,6 +65,12 @@
 	transition: transform var(--mfm-transition), box-shadow var(--mfm-transition);
 }
 
+.mfm-btn {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 6px;
+}
+
 .mfm-actions .button:hover {
 	transform: translateY(-1px);
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
@@ -230,8 +236,42 @@
 	transition: color var(--mfm-transition);
 }
 
+.mfm-item-cell {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mfm-item-name {
+	display: inline-block;
+	line-height: 1.25;
+}
+
 .mfm-item-link:hover {
 	color: var(--mfm-accent);
+}
+
+.mfm-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	color: #60758f;
+}
+
+.mfm-icon--folder {
+	color: #376fd4;
+}
+
+.mfm-icon--file {
+	color: #60758f;
+}
+
+.mfm-btn .mfm-icon {
+	width: 14px;
+	height: 14px;
+	color: inherit;
 }
 
 .mfm-table tr {

@@ -96,6 +96,43 @@
 		return response;
 	}
 
+	function Icon(props) {
+		const icon = props && props.name ? props.name : 'file';
+		let path = 'M6 3h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z';
+
+		if (icon === 'folder') {
+			path = 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7Z';
+		} else if (icon === 'upload') {
+			path = 'M12 16V6m0 0-4 4m4-4 4 4M4 18h16';
+		} else if (icon === 'download') {
+			path = 'M12 6v10m0 0-4-4m4 4 4-4M4 18h16';
+		} else if (icon === 'refresh') {
+			path = 'M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6';
+		} else if (icon === 'edit') {
+			path = 'm4 20 4.5-1 9-9a2 2 0 0 0 0-3l-.5-.5a2 2 0 0 0-3 0l-9 9L4 20Z';
+		} else if (icon === 'move') {
+			path = 'M12 3v18m0-18 4 4m-4-4-4 4m4 14 4-4m-4 4-4-4';
+		} else if (icon === 'copy') {
+			path = 'M9 9h11v11H9zM4 4h11v11H4z';
+		} else if (icon === 'trash') {
+			path = 'M4 7h16M9 7V4h6v3m-8 0v12m4-12v12m4-12v12';
+		} else if (icon === 'file-add') {
+			path = 'M6 3h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm6 6v6m-3-3h6';
+		} else if (icon === 'folder-add') {
+			path = 'M3 8a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8Zm9 2v6m-3-3h6';
+		}
+
+		return h(
+			'span',
+			{ className: `mfm-icon mfm-icon--${icon}`, 'aria-hidden': 'true' },
+			h(
+				'svg',
+				{ viewBox: '0 0 24 24', width: '14', height: '14', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
+				h('path', { d: path })
+			)
+		);
+	}
+
 	function App() {
 		const [path, setPath] = useState(normalizePath(config.initialPath || '/'));
 		const [items, setItems] = useState([]);
@@ -379,15 +416,15 @@
 				'div',
 				{ className: 'mfm-topbar' },
 				h('div', { className: 'mfm-actions' },
-					h('button', { className: 'button button-primary', onClick: handleCreateFolder }, __('New Folder', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: handleCreateFile }, __('New File', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: handleUploadClick }, __('Upload', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: handleRename }, __('Rename', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: () => handleMove(false) }, __('Move', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: () => handleMove(true) }, __('Copy', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: handleDelete }, __('Delete', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: handleDownload }, __('Download', 'modern-file-manager')),
-					h('button', { className: 'button', onClick: () => refresh(path) }, __('Refresh', 'modern-file-manager'))
+					h('button', { className: 'button button-primary mfm-btn', onClick: handleCreateFolder }, h(Icon, { name: 'folder-add' }), h('span', null, __('New Folder', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: handleCreateFile }, h(Icon, { name: 'file-add' }), h('span', null, __('New File', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: handleUploadClick }, h(Icon, { name: 'upload' }), h('span', null, __('Upload', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: handleRename }, h(Icon, { name: 'edit' }), h('span', null, __('Rename', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: () => handleMove(false) }, h(Icon, { name: 'move' }), h('span', null, __('Move', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: () => handleMove(true) }, h(Icon, { name: 'copy' }), h('span', null, __('Copy', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: handleDelete }, h(Icon, { name: 'trash' }), h('span', null, __('Delete', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: handleDownload }, h(Icon, { name: 'download' }), h('span', null, __('Download', 'modern-file-manager'))),
+					h('button', { className: 'button mfm-btn', onClick: () => refresh(path) }, h(Icon, { name: 'refresh' }), h('span', null, __('Refresh', 'modern-file-manager')))
 				),
 				h('div', { className: 'mfm-search-wrap' },
 					h('input', {
@@ -480,14 +517,17 @@
 												})
 											),
 											h('td', null,
-												h('button', {
-													type: 'button',
-													className: 'mfm-item-link',
-													onClick: () => (item.type === 'dir' ? refresh(item.path) : selectOnly(item.path)),
-												},
-													item.type === 'dir' ? `[DIR] ${item.name}` : `[FILE] ${item.name}`
+											h('button', {
+												type: 'button',
+												className: 'mfm-item-link',
+												onClick: () => (item.type === 'dir' ? refresh(item.path) : selectOnly(item.path)),
+											},
+												h('span', { className: 'mfm-item-cell' },
+													h(Icon, { name: item.type === 'dir' ? 'folder' : 'file' }),
+													h('span', { className: 'mfm-item-name' }, item.name)
 												)
-											),
+											)
+										),
 											h('td', null, item.type === 'dir' ? '-' : formatBytes(item.size)),
 											h('td', null, formatDate(item.modified))
 										)
