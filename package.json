@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "build:cm": "esbuild assets/js/codemirror-bundle-src.js --bundle --format=iife --target=es2019 --outfile=assets/js/codemirror-bundle.js --minify",
+    "build:plugin": "bash scripts/build-plugin.sh",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

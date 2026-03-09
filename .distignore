@@ -1,0 +1,17 @@
+.git/
+.gitignore
+.phpunit.cache/
+.playwright-cli/
+dist/
+node_modules/
+vendor/
+tests/
+scripts/
+composer.json
+composer.lock
+package.json
+package-lock.json
+phpunit.xml.dist
+playwright.config.js
+assets/js/codemirror-bundle-src.js
+README.md
