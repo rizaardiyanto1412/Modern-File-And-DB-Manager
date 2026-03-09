@@ -1,0 +1,15 @@
+# Third-Party Licenses
+
+## Adminer
+
+- Component: `includes/vendor/adminer/adminer.php`
+- Project: [Adminer](https://www.adminer.org/)
+- Copyright: Jakub Vrana
+- License: Apache License 2.0 **or** GNU GPL v2
+- Source notice embedded in the file header and `includes/vendor/adminer/LICENSE`.
+
+## CodeMirror Themes
+
+- Components: local bundle generated from npm dependencies in `assets/js/codemirror-bundle.js`
+- Upstream packages include CodeMirror core and theme modules listed in `package.json`.
+- Licenses: per-package npm metadata.

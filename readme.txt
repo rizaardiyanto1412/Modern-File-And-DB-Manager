@@ -7,11 +7,12 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A secure and modern admin file manager for WordPress with interactive navigation and in-app editing.
+A secure and modern admin file manager for WordPress with interactive navigation, in-app editing, and optional DB Manager tools.
 
 == Description ==
 
 Modern File Manager provides a responsive file browser in wp-admin with REST-based actions, folder tree navigation, context menu actions, and an in-app CodeMirror editor.
+It also includes an optional Adminer-based DB Manager page with tokenized launch and admin capability checks.
 
 == Installation ==
 

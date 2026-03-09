@@ -34,6 +34,8 @@ require_once MFM_PLUGIN_DIR . 'includes/class-plugin.php';
 require_once MFM_PLUGIN_DIR . 'includes/class-admin-page.php';
 require_once MFM_PLUGIN_DIR . 'includes/class-rest-controller.php';
 require_once MFM_PLUGIN_DIR . 'includes/class-filesystem-service.php';
+require_once MFM_PLUGIN_DIR . 'includes/db/class-db-manager-service.php';
+require_once MFM_PLUGIN_DIR . 'includes/db/class-db-admin-page.php';
 
 register_activation_hook( __FILE__, array( 'ModernFileManager\\Plugin', 'activate' ) );
 

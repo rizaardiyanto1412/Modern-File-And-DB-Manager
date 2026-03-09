@@ -37,3 +37,11 @@
 3. Verify fold gutter markers appear and functions/blocks can be collapsed.
 4. Edit content, click `Save`, and confirm file content changes on disk.
 5. Close and reopen editor to verify persisted content.
+
+## DB Manager
+
+1. Open `wp-admin/admin.php?page=modern-file-manager-db` as admin and verify page loads.
+2. Verify warning banner, environment badge text, and masked DB host/user metadata are visible.
+3. Click `Open DB Manager` and confirm Adminer loads in the embedded frame.
+4. Tamper launch URL token/signature and confirm safe error page (no credential leakage).
+5. Disable `Enable DB Manager` setting, save, and confirm launch is blocked.

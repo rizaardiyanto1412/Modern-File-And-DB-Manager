@@ -4,7 +4,7 @@
 .playwright-cli/
 dist/
 node_modules/
-vendor/
+/vendor/
 tests/
 scripts/
 composer.json

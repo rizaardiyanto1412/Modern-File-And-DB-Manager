@@ -35,6 +35,13 @@ class Plugin {
 	private $rest_controller;
 
 	/**
+	 * DB manager admin page service.
+	 *
+	 * @var DB_Admin_Page
+	 */
+	private $db_admin_page;
+
+	/**
 	 * Get singleton.
 	 *
 	 * @return Plugin
@@ -63,10 +70,13 @@ class Plugin {
 	 */
 	public function init() {
 		$filesystem            = new Filesystem_Service();
+		$db_manager            = new DB_Manager_Service();
 		$this->admin_page      = new Admin_Page();
 		$this->rest_controller = new Rest_Controller( $filesystem );
+		$this->db_admin_page   = new DB_Admin_Page( $db_manager );
 
 		$this->admin_page->init();
 		$this->rest_controller->init();
+		$this->db_admin_page->init();
 	}
 }

@@ -10,6 +10,7 @@ Modern File Manager is an admin-only WordPress plugin that provides a single-pag
 - Rename, move, copy, delete
 - Upload and download
 - In-app code editor (CodeMirror 6) with syntax highlight, fold gutter, and theme switcher (`Light`, `One Dark`, `Monokai`, `Solarized Dark`, `Tokyo Night`, `Nord`)
+- Optional DB Manager module (Adminer-based) on a separate admin page
 - Breadcrumb navigation, search, sorting, detail panel
 - Keyboard shortcuts:
   - `Ctrl/Cmd + R`: refresh current folder
@@ -40,6 +41,7 @@ Base: `/wp-json/modern-file-manager/v1`
 - `GET /download?path=/...`
 - `GET /read-file?path=/...`
 - `POST /save-file`
+- DB Manager launch endpoint: `admin-post.php?action=mfm_db_manager_launch` (tokenized, admin-only)
 
 Success response:
 
@@ -116,3 +118,7 @@ Notes:
 - The plugin currently uses direct filesystem functions with strict policy checks.
 - CodeMirror 6 is bundled locally in `assets/js/codemirror-bundle.js` (no CDN runtime dependency).
 - For environments requiring alternate filesystem transport (FTP/SSH), extend `Filesystem_Service` to integrate `WP_Filesystem` transport selection.
+
+## Third-Party Components
+
+- Adminer (`includes/vendor/adminer/adminer.php`) — Apache License 2.0 or GPL v2.
