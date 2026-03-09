@@ -645,13 +645,13 @@
 			setContextMenu({ open: false, x: 0, y: 0, item: null });
 			if (!item) return;
 
-			if (action === 'open') openItem(item);
 			if (action === 'edit') handleEdit(item);
 			if (action === 'rename') handleRename(item);
 			if (action === 'move') handleMove(false, item);
 			if (action === 'copy') handleMove(true, item);
 			if (action === 'download') handleDownload(item);
 			if (action === 'delete') handleDelete([item]);
+			if (action === 'open-folder' && item.type === 'dir') openItem(item);
 		}
 
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
@@ -802,7 +802,7 @@
 					style: { left: `${contextMenu.x}px`, top: `${contextMenu.y}px` },
 					onClick: (event) => event.stopPropagation(),
 				},
-					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open') }, contextMenu.item && contextMenu.item.type === 'dir' ? __('Open Folder', 'modern-file-manager') : __('Open / Edit', 'modern-file-manager')),
+					contextMenu.item && contextMenu.item.type === 'dir' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open-folder') }, __('Open Folder', 'modern-file-manager')) : null,
 					contextMenu.item && contextMenu.item.type === 'file' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('edit') }, __('Edit File', 'modern-file-manager')) : null,
 					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('rename') }, __('Rename', 'modern-file-manager')),
 					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('move') }, __('Move', 'modern-file-manager')),
@@ -810,8 +810,17 @@
 					contextMenu.item && contextMenu.item.type === 'file' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('download') }, __('Download', 'modern-file-manager')) : null,
 					h('button', { type: 'button', className: 'mfm-context-item is-danger', onClick: () => runContextAction('delete') }, __('Delete', 'modern-file-manager'))
 				) : null,
-				editorOpen ? h('div', { className: 'mfm-editor-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': __('File editor', 'modern-file-manager') },
-					h('div', { className: 'mfm-editor-window' },
+				editorOpen ? h('div', {
+					className: 'mfm-editor-modal',
+					role: 'dialog',
+					'aria-modal': 'true',
+					'aria-label': __('File editor', 'modern-file-manager'),
+					onClick: closeEditor,
+				},
+					h('div', {
+						className: 'mfm-editor-window',
+						onClick: (event) => event.stopPropagation(),
+					},
 						h('div', { className: 'mfm-editor-topbar' },
 							h('strong', { className: 'mfm-editor-path' }, editorPath || __('Editor', 'modern-file-manager')),
 							h('div', { className: 'mfm-editor-actions' },
