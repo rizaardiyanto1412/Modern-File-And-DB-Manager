@@ -238,7 +238,7 @@
 			const [treeChildrenByPath, setTreeChildrenByPath] = useState({ '/': [] });
 			const [treeExpanded, setTreeExpanded] = useState({ '/': true });
 			const [treeLoadingByPath, setTreeLoadingByPath] = useState({});
-			const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, item: null });
+			const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, item: null, mode: 'item' });
 			const [editorOpen, setEditorOpen] = useState(false);
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
@@ -397,14 +397,18 @@
 			}
 		}, []);
 
-		useEffect(() => {
-			if (!contextMenu.open) {
-				return undefined;
+			function closeContextMenu() {
+				setContextMenu({ open: false, x: 0, y: 0, item: null, mode: 'item' });
 			}
 
-			function closeMenuOnOutside() {
-				setContextMenu({ open: false, x: 0, y: 0, item: null });
-			}
+			useEffect(() => {
+				if (!contextMenu.open) {
+					return undefined;
+				}
+
+				function closeMenuOnOutside() {
+					closeContextMenu();
+				}
 
 			function closeOnEscape(event) {
 				if (event.key === 'Escape') {
@@ -702,22 +706,49 @@
 			openEditorForPath(item.path);
 		}
 
-		function openContextMenu(event, item) {
-			event.preventDefault();
-			event.stopPropagation();
-			selectOnly(item.path);
-			setContextMenu({
-				open: true,
-				x: event.clientX,
-				y: event.clientY,
-				item,
-			});
-		}
+			function openContextMenu(event, item) {
+				event.preventDefault();
+				event.stopPropagation();
+				selectOnly(item.path);
+				setContextMenu({
+					open: true,
+					x: event.clientX,
+					y: event.clientY,
+					item,
+					mode: 'item',
+				});
+			}
 
-		function runContextAction(action) {
-			const item = contextMenu.item;
-			setContextMenu({ open: false, x: 0, y: 0, item: null });
-			if (!item) return;
+			function openWorkspaceContextMenu(event) {
+				const target = event.target;
+				if (target && typeof target.closest === 'function' && target.closest('.mfm-item-row')) {
+					return;
+				}
+				event.preventDefault();
+				event.stopPropagation();
+				setContextMenu({
+					open: true,
+					x: event.clientX,
+					y: event.clientY,
+					item: null,
+					mode: 'workspace',
+				});
+			}
+
+			function runContextAction(action) {
+				const item = contextMenu.item;
+				const mode = contextMenu.mode;
+				closeContextMenu();
+
+				if (mode === 'workspace') {
+					if (action === 'new-folder') handleCreateFolder();
+					if (action === 'new-file') handleCreateFile();
+					if (action === 'upload') handleUploadClick();
+					if (action === 'refresh') refresh(path);
+					return;
+				}
+
+				if (!item) return;
 
 			if (action === 'edit') handleEdit(item);
 			if (action === 'rename') handleRename(item);
@@ -859,8 +890,8 @@
 							treeExpanded['/'] ? renderTreeNodes('/', 1) : null
 						)
 					),
-				h('main', { className: 'mfm-main' },
-					h('table', { className: 'mfm-table' },
+					h('main', { className: 'mfm-main', onContextMenu: openWorkspaceContextMenu },
+						h('table', { className: 'mfm-table' },
 						h('thead', null,
 							h('tr', null,
 								h('th', { className: 'mfm-col-check' }, ''),
@@ -885,13 +916,13 @@
 								)) :
 								(filteredSortedItems.length === 0 ?
 									h('tr', { className: 'mfm-empty-row' }, h('td', { colSpan: 4 }, __('No items in this folder.', 'modern-file-manager'))) :
-									filteredSortedItems.map((item) =>
-											h('tr', {
-												key: item.path,
-												className: selected[item.path] ? 'is-selected' : '',
-												onDoubleClick: () => (item.type === 'dir' ? refresh(item.path) : openEditorForPath(item.path)),
-												onContextMenu: (event) => openContextMenu(event, item),
-											},
+										filteredSortedItems.map((item) =>
+												h('tr', {
+													key: item.path,
+													className: `${selected[item.path] ? 'is-selected' : ''} mfm-item-row`,
+													onDoubleClick: () => (item.type === 'dir' ? refresh(item.path) : openEditorForPath(item.path)),
+													onContextMenu: (event) => openContextMenu(event, item),
+												},
 											h('td', { className: 'mfm-col-check' },
 												h('input', {
 													type: 'checkbox',
@@ -938,19 +969,26 @@
 				)
 				)
 				,
-				contextMenu.open ? h('div', {
-					className: 'mfm-context-menu',
-					style: { left: `${contextMenu.x}px`, top: `${contextMenu.y}px` },
-					onClick: (event) => event.stopPropagation(),
-				},
-					contextMenu.item && contextMenu.item.type === 'dir' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open-folder') }, __('Open Folder', 'modern-file-manager')) : null,
-					contextMenu.item && contextMenu.item.type === 'file' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('edit') }, __('Edit File', 'modern-file-manager')) : null,
-					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('rename') }, __('Rename', 'modern-file-manager')),
-					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('move') }, __('Move', 'modern-file-manager')),
-					h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('copy') }, __('Copy', 'modern-file-manager')),
-					contextMenu.item && contextMenu.item.type === 'file' ? h('button', { type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('download') }, __('Download', 'modern-file-manager')) : null,
-					h('button', { type: 'button', className: 'mfm-context-item is-danger', onClick: () => runContextAction('delete') }, __('Delete', 'modern-file-manager'))
-				) : null,
+					contextMenu.open ? h('div', {
+						className: 'mfm-context-menu',
+						style: { left: `${contextMenu.x}px`, top: `${contextMenu.y}px` },
+						onClick: (event) => event.stopPropagation(),
+					},
+						contextMenu.mode === 'workspace' ? [
+							h('button', { key: 'new-folder', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('new-folder') }, __('New Folder', 'modern-file-manager')),
+							h('button', { key: 'new-file', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('new-file') }, __('New File', 'modern-file-manager')),
+							h('button', { key: 'upload', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('upload') }, __('Upload', 'modern-file-manager')),
+							h('button', { key: 'refresh', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('refresh') }, __('Refresh', 'modern-file-manager')),
+						] : [
+							contextMenu.item && contextMenu.item.type === 'dir' ? h('button', { key: 'open-folder', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open-folder') }, __('Open Folder', 'modern-file-manager')) : null,
+							contextMenu.item && contextMenu.item.type === 'file' ? h('button', { key: 'edit', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('edit') }, __('Edit File', 'modern-file-manager')) : null,
+							h('button', { key: 'rename', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('rename') }, __('Rename', 'modern-file-manager')),
+							h('button', { key: 'move', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('move') }, __('Move', 'modern-file-manager')),
+							h('button', { key: 'copy', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('copy') }, __('Copy', 'modern-file-manager')),
+							contextMenu.item && contextMenu.item.type === 'file' ? h('button', { key: 'download', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('download') }, __('Download', 'modern-file-manager')) : null,
+							h('button', { key: 'delete', type: 'button', className: 'mfm-context-item is-danger', onClick: () => runContextAction('delete') }, __('Delete', 'modern-file-manager')),
+						]
+					) : null,
 				editorOpen ? h('div', {
 					className: 'mfm-editor-modal',
 					role: 'dialog',
