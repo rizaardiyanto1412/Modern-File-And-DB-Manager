@@ -1,10 +1,11 @@
 <?php
 /**
  * Plugin Name: Modern File Manager
- * Plugin URI: https://example.com/modern-file-manager
  * Description: Secure and modern file manager for WordPress admins.
  * Version: 1.0.0
  * Author: Modern File Manager Team
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: modern-file-manager
  * Domain Path: /languages
  *

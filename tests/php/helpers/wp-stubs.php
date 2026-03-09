@@ -142,3 +142,25 @@ if ( ! function_exists( 'nocache_headers' ) ) {
 	function nocache_headers() {
 	}
 }
+
+if ( ! function_exists( 'wp_delete_file' ) ) {
+	function wp_delete_file( $file ) {
+		return @unlink( (string) $file );
+	}
+}
+
+if ( ! function_exists( 'wp_is_writable' ) ) {
+	function wp_is_writable( $path ) {
+		return is_writable( (string) $path );
+	}
+}
+
+if ( ! function_exists( 'wp_mkdir_p' ) ) {
+	function wp_mkdir_p( $target ) {
+		$target = (string) $target;
+		if ( is_dir( $target ) ) {
+			return true;
+		}
+		return @mkdir( $target, 0755, true );
+	}
+}

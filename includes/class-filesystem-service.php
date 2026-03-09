@@ -89,14 +89,14 @@ class Filesystem_Service {
 				continue;
 			}
 
-			$items[] = array(
+				$items[] = array(
 				'name'      => $entry,
 				'path'      => $entry_rel,
 				'type'      => is_dir( $entry_abs ) ? 'dir' : 'file',
 				'size'      => is_file( $entry_abs ) ? (int) @filesize( $entry_abs ) : 0,
 				'modified'  => (int) @filemtime( $entry_abs ),
 				'readable'  => is_readable( $entry_abs ),
-				'writable'  => is_writable( $entry_abs ),
+					'writable'  => wp_is_writable( $entry_abs ),
 				'extension' => is_file( $entry_abs ) ? strtolower( (string) pathinfo( $entry_abs, PATHINFO_EXTENSION ) ) : '',
 			);
 		}
@@ -145,7 +145,7 @@ class Filesystem_Service {
 			return new WP_Error( 'conflict', __( 'A file or folder with this name already exists.', 'modern-file-manager' ), array( 'status' => 409 ) );
 		}
 
-		if ( ! @mkdir( $target_abs, 0755 ) ) {
+		if ( ! wp_mkdir_p( $target_abs ) ) {
 			return new WP_Error( 'io_error', __( 'Unable to create folder.', 'modern-file-manager' ), array( 'status' => 500 ) );
 		}
 
@@ -216,7 +216,7 @@ class Filesystem_Service {
 			return new WP_Error( 'conflict', __( 'Destination already exists.', 'modern-file-manager' ), array( 'status' => 409 ) );
 		}
 
-		if ( ! @rename( $source_abs, $dest_abs ) ) {
+		if ( ! $this->move_path_with_filesystem( $source_abs, $dest_abs ) ) {
 			return new WP_Error( 'io_error', __( 'Unable to rename.', 'modern-file-manager' ), array( 'status' => 500 ) );
 		}
 
@@ -253,7 +253,7 @@ class Filesystem_Service {
 			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-manager' ), array( 'status' => 409 ) );
 		}
 
-		if ( ! @rename( $source_abs, $target_abs ) ) {
+		if ( ! $this->move_path_with_filesystem( $source_abs, $target_abs ) ) {
 			return new WP_Error( 'io_error', __( 'Unable to move item.', 'modern-file-manager' ), array( 'status' => 500 ) );
 		}
 
@@ -318,7 +318,7 @@ class Filesystem_Service {
 				return new WP_Error( 'forbidden', __( 'Deleting the sandbox root is not allowed.', 'modern-file-manager' ), array( 'status' => 403 ) );
 			}
 
-			$ok = is_dir( $target_abs ) ? $this->delete_directory_recursive( $target_abs ) : @unlink( $target_abs );
+			$ok = is_dir( $target_abs ) ? $this->delete_directory_recursive( $target_abs ) : wp_delete_file( $target_abs );
 			if ( ! $ok ) {
 				return new WP_Error( 'io_error', __( 'Unable to delete item.', 'modern-file-manager' ), array( 'status' => 500 ) );
 			}
@@ -369,9 +369,10 @@ class Filesystem_Service {
 			return new WP_Error( 'forbidden', __( 'Invalid uploaded file.', 'modern-file-manager' ), array( 'status' => 403 ) );
 		}
 
-		if ( ! @move_uploaded_file( $tmp_name, $target_abs ) ) {
+		if ( ! @copy( $tmp_name, $target_abs ) ) {
 			return new WP_Error( 'io_error', __( 'Unable to store uploaded file.', 'modern-file-manager' ), array( 'status' => 500 ) );
 		}
+		wp_delete_file( $tmp_name );
 
 		return array( 'path' => $this->to_relative_path( $target_abs ) );
 	}
@@ -443,7 +444,7 @@ class Filesystem_Service {
 		if ( ! is_file( $resolved ) ) {
 			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-manager' ), array( 'status' => 400 ) );
 		}
-		if ( ! is_writable( $resolved ) ) {
+		if ( ! wp_is_writable( $resolved ) ) {
 			return new WP_Error( 'forbidden', __( 'File is not writable.', 'modern-file-manager' ), array( 'status' => 403 ) );
 		}
 
@@ -604,7 +605,7 @@ class Filesystem_Service {
 	 * @return bool
 	 */
 	private function copy_directory_recursive( $source, $destination ) {
-		if ( ! @mkdir( $destination, 0755 ) ) {
+		if ( ! wp_mkdir_p( $destination ) ) {
 			return false;
 		}
 
@@ -654,12 +655,61 @@ class Filesystem_Service {
 			}
 
 			$path = wp_normalize_path( $directory . '/' . $item );
-			$ok   = is_dir( $path ) ? $this->delete_directory_recursive( $path ) : @unlink( $path );
+			$ok   = is_dir( $path ) ? $this->delete_directory_recursive( $path ) : wp_delete_file( $path );
 			if ( ! $ok ) {
 				return false;
 			}
 		}
 
-		return @rmdir( $directory );
+		$wp_filesystem = $this->get_wp_filesystem();
+		if ( $wp_filesystem && method_exists( $wp_filesystem, 'rmdir' ) ) {
+			return (bool) $wp_filesystem->rmdir( $directory, false );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Fallback for direct filesystem environments.
+		return rmdir( $directory );
+	}
+
+	/**
+	 * Move path using WP_Filesystem, with fallback.
+	 *
+	 * @param string $source_abs Source absolute path.
+	 * @param string $destination_abs Destination absolute path.
+	 * @return bool
+	 */
+	private function move_path_with_filesystem( $source_abs, $destination_abs ) {
+		$wp_filesystem = $this->get_wp_filesystem();
+		if ( $wp_filesystem && method_exists( $wp_filesystem, 'move' ) ) {
+			return (bool) $wp_filesystem->move( $source_abs, $destination_abs, false );
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Fallback for direct filesystem environments.
+		return rename( $source_abs, $destination_abs );
+	}
+
+	/**
+	 * Get initialized WP_Filesystem instance when possible.
+	 *
+	 * @return object|null
+	 */
+	private function get_wp_filesystem() {
+		global $wp_filesystem;
+
+		if ( is_object( $wp_filesystem ) ) {
+			return $wp_filesystem;
+		}
+
+		$wp_filesystem_file = ABSPATH . 'wp-admin/includes/file.php';
+		if ( ! file_exists( $wp_filesystem_file ) ) {
+			return null;
+		}
+
+		require_once $wp_filesystem_file;
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			return null;
+		}
+
+		WP_Filesystem();
+		return is_object( $wp_filesystem ) ? $wp_filesystem : null;
 	}
 }

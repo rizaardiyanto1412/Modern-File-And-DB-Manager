@@ -327,12 +327,16 @@ class Rest_Controller {
 
 		$filename = basename( $resolved );
 		$filename = str_replace( '"', '', $filename );
+		$content  = file_get_contents( $resolved );
+		if ( false === $content ) {
+			return $this->error_response( new WP_Error( 'io_error', __( 'Unable to read download file.', 'modern-file-manager' ), array( 'status' => 500 ) ) );
+		}
 		nocache_headers();
 		header( 'Content-Description: File Transfer' );
 		header( 'Content-Type: application/octet-stream' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-		header( 'Content-Length: ' . (string) filesize( $resolved ) );
-		readfile( $resolved );
+		header( 'Content-Length: ' . (string) strlen( $content ) );
+		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Download response body.
 		exit;
 	}
 

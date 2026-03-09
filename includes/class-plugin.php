@@ -62,22 +62,11 @@ class Plugin {
 	 * @return void
 	 */
 	public function init() {
-		add_action( 'init', array( $this, 'load_textdomain' ) );
-
 		$filesystem            = new Filesystem_Service();
 		$this->admin_page      = new Admin_Page();
 		$this->rest_controller = new Rest_Controller( $filesystem );
 
 		$this->admin_page->init();
 		$this->rest_controller->init();
-	}
-
-	/**
-	 * Load translations.
-	 *
-	 * @return void
-	 */
-	public function load_textdomain() {
-		load_plugin_textdomain( 'modern-file-manager', false, dirname( plugin_basename( MFM_PLUGIN_FILE ) ) . '/languages' );
 	}
 }
