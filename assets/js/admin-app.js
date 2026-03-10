@@ -255,6 +255,12 @@
 				submitting: false,
 				treeExpanded: { '/': true },
 			});
+			const [renameDialog, setRenameDialog] = useState({
+				open: false,
+				item: null,
+				name: '',
+				submitting: false,
+			});
 			const [editorOpen, setEditorOpen] = useState(false);
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
@@ -265,6 +271,7 @@
 			const editorHostRef = useRef(null);
 			const editorViewRef = useRef(null);
 			const editorThemeCompartmentRef = useRef(null);
+			const renameInputRef = useRef(null);
 
 		const selectedItems = useMemo(
 			() => items.filter((item) => selected[item.path]),
@@ -389,12 +396,17 @@
 
 		useEffect(() => {
 			function onKeyDown(event) {
+				if (event.key === 'Escape' && renameDialog.open) {
+					event.preventDefault();
+					closeRenameDialog();
+					return;
+				}
 				if (event.key === 'Escape' && transferDialog.open) {
 					event.preventDefault();
 					closeTransferDialog();
 					return;
 				}
-				if (transferDialog.open || editorOpen) {
+				if (renameDialog.open || transferDialog.open || editorOpen) {
 					return;
 				}
 				if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'r') {
@@ -412,7 +424,15 @@
 			}
 			window.addEventListener('keydown', onKeyDown);
 			return () => window.removeEventListener('keydown', onKeyDown);
-		}, [editorOpen, path, selectedItems, transferDialog.open]);
+		}, [editorOpen, path, renameDialog.open, selectedItems, transferDialog.open]);
+
+		useEffect(() => {
+			if (!renameDialog.open || !renameInputRef.current) {
+				return;
+			}
+			renameInputRef.current.focus();
+			renameInputRef.current.select();
+		}, [renameDialog.open]);
 
 		useEffect(() => () => {
 			if (editorViewRef.current) {
@@ -518,14 +538,62 @@
 				toast('error', __('Select exactly one item to rename.', 'modern-file-db-manager'));
 				return;
 			}
-			const newName = window.prompt(__('New name:', 'modern-file-db-manager'), current.name);
-			if (!newName || newName === current.name) return;
+			openRenameDialog(current);
+		}
+
+		function getRenameInvalidReason(item, name) {
+			if (!item) {
+				return __('Select exactly one item to rename.', 'modern-file-db-manager');
+			}
+			const trimmed = String(name || '').trim();
+			if (!trimmed) {
+				return __('Please provide a valid file or folder name.', 'modern-file-db-manager');
+			}
+			if (trimmed === item.name) {
+				return __('New name must be different from current name.', 'modern-file-db-manager');
+			}
+			return '';
+		}
+
+		function openRenameDialog(item) {
+			setRenameDialog({
+				open: true,
+				item,
+				name: item ? item.name : '',
+				submitting: false,
+			});
+		}
+
+		function closeRenameDialog() {
+			setRenameDialog({
+				open: false,
+				item: null,
+				name: '',
+				submitting: false,
+			});
+		}
+
+		async function confirmRename() {
+			if (!renameDialog.item || renameDialog.submitting) {
+				return;
+			}
+
+			const invalidReason = getRenameInvalidReason(renameDialog.item, renameDialog.name);
+			if (invalidReason) {
+				toast('error', invalidReason);
+				return;
+			}
+
+			const newName = String(renameDialog.name || '').trim();
+			setRenameDialog((current) => ({ ...current, submitting: true }));
 			try {
-				await apiFetch('/rename', { method: 'POST', body: { path: current.path, newName } });
+				await apiFetch('/rename', { method: 'POST', body: { path: renameDialog.item.path, newName } });
 				toast('success', __('Item renamed.', 'modern-file-db-manager'));
+				closeRenameDialog();
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
+				setRenameDialog((current) => ({ ...current, submitting: false }));
 			}
 		}
 
@@ -976,6 +1044,7 @@
 		}
 
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
+		const renameInvalidReason = renameDialog.open ? getRenameInvalidReason(renameDialog.item, renameDialog.name) : '';
 		const transferInvalidReason = transferDialog.open ? getTransferInvalidReason(transferDialog.item, transferDialog.destination) : '';
 
 		return h(
@@ -1187,6 +1256,56 @@
 						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
 							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-db-manager')) : null,
 							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })
+						)
+					)
+				) : null,
+				renameDialog.open ? h('div', {
+					className: 'mfm-editor-modal mfm-transfer-modal',
+					role: 'dialog',
+					'aria-modal': 'true',
+					'aria-label': __('Rename item', 'modern-file-db-manager'),
+					onClick: closeRenameDialog,
+				},
+					h('div', {
+						className: 'mfm-rename-window',
+						onClick: (event) => event.stopPropagation(),
+					},
+						h('div', { className: 'mfm-transfer-header' },
+							h('strong', null, __('Rename Item', 'modern-file-db-manager')),
+							h('button', { type: 'button', className: 'button', onClick: closeRenameDialog, disabled: renameDialog.submitting }, __('Cancel', 'modern-file-db-manager'))
+						),
+						h('p', { className: 'mfm-transfer-source' },
+							`${__('Path:', 'modern-file-db-manager')} ${renameDialog.item ? renameDialog.item.path : ''}`
+						),
+						h('label', { className: 'mfm-rename-field' },
+							h('span', null, __('New name', 'modern-file-db-manager')),
+							h('input', {
+								ref: renameInputRef,
+								type: 'text',
+								value: renameDialog.name,
+								onChange: (event) => setRenameDialog((current) => ({ ...current, name: event.target.value })),
+								onKeyDown: (event) => {
+									if (event.key === 'Enter') {
+										event.preventDefault();
+										confirmRename();
+									}
+								},
+								disabled: renameDialog.submitting,
+							})
+						),
+						renameInvalidReason ? h('p', { className: 'mfm-transfer-error' }, renameInvalidReason) : null,
+						h('div', { className: 'mfm-transfer-actions' },
+							h('button', { type: 'button', className: 'button', onClick: closeRenameDialog, disabled: renameDialog.submitting }, __('Cancel', 'modern-file-db-manager')),
+							h(
+								'button',
+								{
+									type: 'button',
+									className: 'button button-primary',
+									onClick: confirmRename,
+									disabled: !!renameInvalidReason || renameDialog.submitting,
+								},
+								renameDialog.submitting ? __('Working...', 'modern-file-db-manager') : __('Rename', 'modern-file-db-manager')
+							)
 						)
 					)
 				) : null,
