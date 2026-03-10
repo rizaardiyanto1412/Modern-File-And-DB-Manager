@@ -267,6 +267,11 @@
 				name: '',
 				submitting: false,
 			});
+			const [deleteDialog, setDeleteDialog] = useState({
+				open: false,
+				items: [],
+				submitting: false,
+			});
 			const [editorOpen, setEditorOpen] = useState(false);
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
@@ -403,6 +408,16 @@
 
 		useEffect(() => {
 			function onKeyDown(event) {
+				if (event.key === 'Escape' && deleteDialog.open) {
+					event.preventDefault();
+					closeDeleteDialog();
+					return;
+				}
+				if (event.key === 'Enter' && deleteDialog.open) {
+					event.preventDefault();
+					confirmDeleteDialog();
+					return;
+				}
 				if (event.key === 'Escape' && createDialog.open) {
 					event.preventDefault();
 					closeCreateDialog();
@@ -418,7 +433,7 @@
 					closeTransferDialog();
 					return;
 				}
-				if (createDialog.open || renameDialog.open || transferDialog.open || editorOpen) {
+				if (deleteDialog.open || createDialog.open || renameDialog.open || transferDialog.open || editorOpen) {
 					return;
 				}
 				if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'r') {
@@ -436,7 +451,7 @@
 			}
 			window.addEventListener('keydown', onKeyDown);
 			return () => window.removeEventListener('keydown', onKeyDown);
-		}, [createDialog.open, editorOpen, path, renameDialog.open, selectedItems, transferDialog.open]);
+		}, [createDialog.open, deleteDialog.open, editorOpen, path, renameDialog.open, selectedItems, transferDialog.open]);
 
 		useEffect(() => {
 			if (!renameDialog.open || !renameInputRef.current) {
@@ -657,20 +672,42 @@
 				toast('error', __('Select at least one item.', 'modern-file-db-manager'));
 				return;
 			}
-			const confirmDelete = window.confirm(
-				__('Delete selected items permanently?', 'modern-file-db-manager')
-			);
-			if (!confirmDelete) return;
+			openDeleteDialog(itemsToDelete);
+		}
 
+		function openDeleteDialog(items) {
+			setDeleteDialog({
+				open: true,
+				items: Array.isArray(items) ? items : [],
+				submitting: false,
+			});
+		}
+
+		function closeDeleteDialog() {
+			setDeleteDialog({
+				open: false,
+				items: [],
+				submitting: false,
+			});
+		}
+
+		async function confirmDeleteDialog() {
+			if (!deleteDialog.items.length || deleteDialog.submitting) {
+				return;
+			}
+
+			setDeleteDialog((current) => ({ ...current, submitting: true }));
 			try {
-					await apiFetch('/delete', {
-						method: 'POST',
-						body: { paths: itemsToDelete.map((item) => item.path) },
-					});
+				await apiFetch('/delete', {
+					method: 'POST',
+					body: { paths: deleteDialog.items.map((item) => item.path) },
+				});
 				toast('success', __('Items deleted.', 'modern-file-db-manager'));
+				closeDeleteDialog();
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
+				setDeleteDialog((current) => ({ ...current, submitting: false }));
 			}
 		}
 
@@ -1311,6 +1348,43 @@
 						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
 							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-db-manager')) : null,
 							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })
+						)
+					)
+				) : null,
+				deleteDialog.open ? h('div', {
+					className: 'mfm-editor-modal mfm-transfer-modal',
+					role: 'dialog',
+					'aria-modal': 'true',
+					'aria-label': __('Delete items', 'modern-file-db-manager'),
+					onClick: closeDeleteDialog,
+				},
+					h('div', {
+						className: 'mfm-rename-window',
+						onClick: (event) => event.stopPropagation(),
+					},
+						h('div', { className: 'mfm-transfer-header' },
+							h('strong', null, __('Confirm Delete', 'modern-file-db-manager')),
+							h('button', { type: 'button', className: 'button', onClick: closeDeleteDialog, disabled: deleteDialog.submitting }, __('Cancel', 'modern-file-db-manager'))
+						),
+						h('p', { className: 'mfm-transfer-source' }, __('Delete selected items permanently?', 'modern-file-db-manager')),
+						h('p', { className: 'mfm-delete-summary' },
+							`${deleteDialog.items.length} ${deleteDialog.items.length === 1 ? __('item selected', 'modern-file-db-manager') : __('items selected', 'modern-file-db-manager')}`
+						),
+						h('ul', { className: 'mfm-delete-list' },
+							deleteDialog.items.map((item) => h('li', { key: `delete-${item.path}` }, item.path))
+						),
+						h('div', { className: 'mfm-transfer-actions' },
+							h('button', { type: 'button', className: 'button', onClick: closeDeleteDialog, disabled: deleteDialog.submitting }, __('Cancel', 'modern-file-db-manager')),
+							h(
+								'button',
+								{
+									type: 'button',
+									className: 'button button-primary mfm-delete-confirm',
+									onClick: confirmDeleteDialog,
+									disabled: deleteDialog.submitting,
+								},
+								deleteDialog.submitting ? __('Deleting...', 'modern-file-db-manager') : __('Delete Permanently', 'modern-file-db-manager')
+							)
 						)
 					)
 				) : null,

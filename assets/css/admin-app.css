@@ -756,6 +756,36 @@
 	color: #1f4e96;
 }
 
+.mfm-delete-summary {
+	margin: 0 0 8px;
+	font-size: 12px;
+	color: #445a74;
+}
+
+.mfm-delete-list {
+	margin: 0;
+	padding: 0 0 0 18px;
+	max-height: 190px;
+	overflow: auto;
+	font-size: 12px;
+	color: #2f455f;
+}
+
+.mfm-delete-list li {
+	margin: 0 0 5px;
+	word-break: break-all;
+}
+
+.mfm-delete-confirm.button.button-primary {
+	background: #cc3344;
+	border-color: #cc3344;
+}
+
+.mfm-delete-confirm.button.button-primary:hover {
+	background: #b92738;
+	border-color: #b92738;
+}
+
 @keyframes mfm-shimmer {
 	0% {
 		background-position: 100% 50%;
