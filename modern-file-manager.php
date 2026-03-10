@@ -1,9 +1,10 @@
 <?php
 /**
- * Plugin Name: Modern File Manager
+ * Plugin Name: Modern File & DB Manager
  * Description: Secure and modern file manager for WordPress admins.
  * Version: 1.0.0
- * Author: Camyt
+ * Author: Camyt Group
+ * Author URI: https://camytgroup.com
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: modern-file-manager
