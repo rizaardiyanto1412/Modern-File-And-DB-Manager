@@ -37,8 +37,6 @@ class Filesystem_Service {
 		$real_root      = realpath( $raw_root );
 		$this->root     = false !== $real_root ? wp_normalize_path( $real_root ) : $raw_root;
 		$this->denylist = array(
-			'/wp-config.php',
-			'/.htaccess',
 			'/.git',
 			'/.env',
 		);

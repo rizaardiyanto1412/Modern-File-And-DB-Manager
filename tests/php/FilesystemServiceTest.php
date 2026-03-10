@@ -38,10 +38,23 @@ class FilesystemServiceTest extends TestCase {
 	}
 
 	public function test_it_blocks_denylisted_file_access(): void {
-		$result = $this->service->list_directory( '/wp-config.php' );
+		$result = $this->service->list_directory( '/.env' );
 
 		$this->assertTrue( \is_wp_error( $result ) );
 		$this->assertSame( 'forbidden', $result->get_error_code() );
+	}
+
+	public function test_it_lists_wp_config_file_when_not_denied(): void {
+		$result = $this->service->list_directory( '/' );
+
+		$this->assertFalse( \is_wp_error( $result ) );
+		$paths = array_map(
+			static function ( $item ) {
+				return isset( $item['path'] ) ? $item['path'] : '';
+			},
+			$result['items']
+		);
+		$this->assertContains( '/wp-config.php', $paths );
 	}
 
 	public function test_it_rejects_traversal_outside_root(): void {

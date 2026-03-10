@@ -24,7 +24,7 @@ Modern File Manager is an admin-only WordPress plugin that provides a single-pag
 - Nonce validation (`wp_rest`)
 - Sandbox root restricted to `ABSPATH`
 - Path traversal blocked
-- Denylist for sensitive paths (`/wp-config.php`, `/.htaccess`, `/.git`, `/.env`)
+- Denylist for sensitive paths (`/.git`, `/.env`)
 
 ## REST Endpoints
 
