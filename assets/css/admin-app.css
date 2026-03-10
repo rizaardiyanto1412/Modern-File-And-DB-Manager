@@ -519,6 +519,25 @@
 	padding: 24px;
 }
 
+.mfm-transfer-modal {
+	position: fixed;
+	inset: 0;
+	background: rgba(20, 30, 45, 0.36);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100001;
+	padding: 24px;
+}
+
+.mfm-editor-modal.mfm-transfer-modal {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
 .mfm-editor-window {
 	width: min(1120px, 96vw);
 	height: min(78vh, 780px);
@@ -608,6 +627,100 @@
 	color: #4f627a;
 }
 
+.mfm-transfer-window {
+	width: min(620px, 96vw);
+	max-height: min(80vh, 760px);
+	background: #ffffff !important;
+	color: #1b2533;
+	border: 1px solid #cfd9e8;
+	border-radius: 14px;
+	box-shadow: 0 24px 56px rgba(15, 23, 42, 0.34);
+	display: flex;
+	flex-direction: column;
+	padding: 14px;
+	position: relative;
+	z-index: 1;
+}
+
+.mfm-transfer-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid #e8edf5;
+}
+
+.mfm-transfer-source {
+	margin: 10px 0 12px;
+	font-size: 12px;
+	color: #3f5168;
+	word-break: break-all;
+}
+
+.mfm-transfer-tree {
+	border: 1px solid #dbe4f0;
+	background: #f8fbff;
+	border-radius: 10px;
+	padding: 8px;
+	overflow: auto;
+	min-height: 180px;
+	max-height: min(42vh, 420px);
+}
+
+.mfm-transfer-tree .mfm-tree-node {
+	min-height: 28px;
+}
+
+.mfm-transfer-tree .mfm-tree-link {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+.mfm-transfer-path {
+	margin-top: 10px;
+	font-size: 12px;
+	color: #32465f;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.mfm-transfer-path code {
+	background: #eaf2ff;
+	border: 1px solid #c9d9f2;
+	border-radius: 6px;
+	padding: 2px 7px;
+	font-size: 11px;
+	color: #1f3654;
+}
+
+.mfm-transfer-error {
+	margin: 10px 0 0;
+	color: #b62d3f;
+	font-size: 12px;
+}
+
+.mfm-transfer-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 12px;
+	padding-top: 10px;
+	border-top: 1px solid #e8edf5;
+}
+
+.mfm-transfer-window .button.button-primary {
+	background: #1d5cff;
+	border-color: #1d5cff;
+	color: #fff;
+}
+
+.mfm-transfer-window .button {
+	color: #1f4e96;
+}
+
 @keyframes mfm-shimmer {
 	0% {
 		background-position: 100% 50%;
@@ -680,8 +793,17 @@
 		padding: 8px;
 	}
 
+	.mfm-transfer-modal {
+		padding: 8px;
+	}
+
 	.mfm-editor-window {
 		height: 90vh;
 		width: 100%;
+	}
+
+	.mfm-transfer-window {
+		width: 100%;
+		max-height: 92vh;
 	}
 }

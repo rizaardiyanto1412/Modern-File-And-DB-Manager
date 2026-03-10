@@ -52,6 +52,14 @@
 		return `/${String(path).replace(/^\/+/, '').replace(/\/+$/, '')}`;
 	}
 
+	function getParentPath(path) {
+		const normalized = normalizePath(path);
+		if (normalized === '/') return '/';
+		const bits = normalized.split('/').filter(Boolean);
+		bits.pop();
+		return bits.length ? `/${bits.join('/')}` : '/';
+	}
+
 	async function apiFetch(route, options) {
 		const opts = options || {};
 		const isFormData = opts.body instanceof FormData;
@@ -239,6 +247,14 @@
 			const [treeExpanded, setTreeExpanded] = useState({ '/': true });
 			const [treeLoadingByPath, setTreeLoadingByPath] = useState({});
 			const [contextMenu, setContextMenu] = useState({ open: false, x: 0, y: 0, item: null, mode: 'item' });
+			const [transferDialog, setTransferDialog] = useState({
+				open: false,
+				isCopy: false,
+				item: null,
+				destination: '/',
+				submitting: false,
+				treeExpanded: { '/': true },
+			});
 			const [editorOpen, setEditorOpen] = useState(false);
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
@@ -373,6 +389,14 @@
 
 		useEffect(() => {
 			function onKeyDown(event) {
+				if (event.key === 'Escape' && transferDialog.open) {
+					event.preventDefault();
+					closeTransferDialog();
+					return;
+				}
+				if (transferDialog.open || editorOpen) {
+					return;
+				}
 				if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'r') {
 					event.preventDefault();
 					refresh(path);
@@ -388,7 +412,7 @@
 			}
 			window.addEventListener('keydown', onKeyDown);
 			return () => window.removeEventListener('keydown', onKeyDown);
-		});
+		}, [editorOpen, path, selectedItems, transferDialog.open]);
 
 		useEffect(() => () => {
 			if (editorViewRef.current) {
@@ -534,25 +558,109 @@
 				toast('error', __('Select exactly one item.', 'modern-file-manager'));
 				return;
 			}
-			const destination = window.prompt(
-				isCopy ? __('Copy to directory:', 'modern-file-manager') : __('Move to directory:', 'modern-file-manager'),
-				path
-			);
-			if (!destination) return;
+			openTransferDialog(isCopy, itemToMove);
+		}
 
+		function getTransferInvalidReason(item, destinationPath) {
+			if (!item) {
+				return __('Select exactly one item.', 'modern-file-manager');
+			}
+			const destination = normalizePath(destinationPath);
+			if (item.type === 'dir') {
+				const source = normalizePath(item.path);
+				if (destination === source || destination.startsWith(`${source}/`)) {
+					return __('Cannot place a folder inside itself.', 'modern-file-manager');
+				}
+			}
+			return '';
+		}
+
+		function closeTransferDialog() {
+			setTransferDialog({
+				open: false,
+				isCopy: false,
+				item: null,
+				destination: '/',
+				submitting: false,
+				treeExpanded: { '/': true },
+			});
+		}
+
+		async function ensureTransferTreeReady(targetPath) {
+			const ancestors = getAncestorPaths(targetPath);
+			const nextExpanded = { '/': true };
+			ancestors.forEach((ancestorPath) => {
+				nextExpanded[ancestorPath] = true;
+			});
+			setTransferDialog((current) => ({ ...current, treeExpanded: nextExpanded }));
+			await ensureTreeChildren('/', false);
+			for (let idx = 0; idx < ancestors.length; idx += 1) {
+				await ensureTreeChildren(ancestors[idx], false);
+			}
+		}
+
+		async function openTransferDialog(isCopy, itemToMove) {
+			const fallbackDestination = normalizePath(path || '/');
+			const safeDestination = itemToMove && itemToMove.type === 'dir' && fallbackDestination.startsWith(`${normalizePath(itemToMove.path)}/`)
+				? getParentPath(itemToMove.path)
+				: fallbackDestination;
+
+			setTransferDialog({
+				open: true,
+				isCopy,
+				item: itemToMove,
+				destination: safeDestination,
+				submitting: false,
+				treeExpanded: { '/': true },
+			});
+
+			await ensureTransferTreeReady(safeDestination);
+		}
+
+		async function confirmTransfer() {
+			if (!transferDialog.item || transferDialog.submitting) {
+				return;
+			}
+
+			const invalidReason = getTransferInvalidReason(transferDialog.item, transferDialog.destination);
+			if (invalidReason) {
+				toast('error', invalidReason);
+				return;
+			}
+
+			setTransferDialog((current) => ({ ...current, submitting: true }));
 			try {
-					await apiFetch(isCopy ? '/copy' : '/move', {
-						method: 'POST',
-						body: {
-							source: itemToMove.path,
-							destination: normalizePath(destination),
-						},
-					});
-				toast('success', isCopy ? __('Item copied.', 'modern-file-manager') : __('Item moved.', 'modern-file-manager'));
+				await apiFetch(transferDialog.isCopy ? '/copy' : '/move', {
+					method: 'POST',
+					body: {
+						source: transferDialog.item.path,
+						destination: normalizePath(transferDialog.destination),
+					},
+				});
+				toast('success', transferDialog.isCopy ? __('Item copied.', 'modern-file-manager') : __('Item moved.', 'modern-file-manager'));
+				closeTransferDialog();
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
+				setTransferDialog((current) => ({ ...current, submitting: false }));
 			}
+		}
+
+		async function toggleTransferTreeNode(folderPath) {
+			const target = normalizePath(folderPath);
+			const isExpanded = !!transferDialog.treeExpanded[target];
+			if (isExpanded) {
+				setTransferDialog((current) => ({
+					...current,
+					treeExpanded: { ...current.treeExpanded, [target]: false },
+				}));
+				return;
+			}
+			setTransferDialog((current) => ({
+				...current,
+				treeExpanded: { ...current.treeExpanded, [target]: true },
+			}));
+			await ensureTreeChildren(target, false);
 		}
 
 		function handleUploadClick() {
@@ -818,7 +926,57 @@
 			});
 		}
 
+		function renderTransferTreeNodes(parentPath, depth) {
+			const children = treeChildrenByPath[parentPath] || [];
+			if (!children.length) {
+				if (treeLoadingByPath[parentPath]) {
+					return h('div', { className: 'mfm-tree-empty' }, __('Loading...', 'modern-file-manager'));
+				}
+				return null;
+			}
+
+			return children.map((node) => {
+				const expanded = !!transferDialog.treeExpanded[node.path];
+				const hasKnownChildren = Object.prototype.hasOwnProperty.call(treeChildrenByPath, node.path);
+				const isLoading = !!treeLoadingByPath[node.path];
+				const mayHaveChildren = !hasKnownChildren || (treeChildrenByPath[node.path] && treeChildrenByPath[node.path].length > 0);
+				const isActive = transferDialog.destination === node.path;
+
+				return h(
+					'div',
+					{ key: `transfer-${node.path}`, className: 'mfm-tree-node-wrap' },
+					h(
+						'div',
+						{ className: `mfm-tree-node ${isActive ? 'is-active' : ''}`, style: { paddingLeft: `${depth * 14}px` } },
+						h(
+							'button',
+								{
+									type: 'button',
+									className: 'mfm-tree-toggle',
+									onClick: () => toggleTransferTreeNode(node.path),
+									'aria-label': expanded ? __('Collapse folder', 'modern-file-manager') : __('Expand folder', 'modern-file-manager'),
+									disabled: !mayHaveChildren && !isLoading,
+								},
+							mayHaveChildren || isLoading ? h(Icon, { name: expanded ? 'chevron-down' : 'chevron-right' }) : null
+						),
+						h(
+							'button',
+							{
+								type: 'button',
+								className: 'mfm-tree-link',
+								onClick: () => setTransferDialog((current) => ({ ...current, destination: node.path })),
+							},
+							h(Icon, { name: 'folder' }),
+							h('span', null, node.name)
+						)
+					),
+					expanded ? renderTransferTreeNodes(node.path, depth + 1) : null
+				);
+			});
+		}
+
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
+		const transferInvalidReason = transferDialog.open ? getTransferInvalidReason(transferDialog.item, transferDialog.destination) : '';
 
 		return h(
 			'div',
@@ -875,10 +1033,10 @@
 									{
 										type: 'button',
 										className: 'mfm-tree-toggle',
-										onClick: () => toggleTreeNode('/'),
-										'aria-label': treeExpanded['/'] ? __('Collapse root', 'modern-file-manager') : __('Expand root', 'modern-file-manager'),
+										onClick: () => toggleTransferTreeNode('/'),
+										'aria-label': transferDialog.treeExpanded['/'] ? __('Collapse root', 'modern-file-manager') : __('Expand root', 'modern-file-manager'),
 									},
-									h(Icon, { name: treeExpanded['/'] ? 'chevron-down' : 'chevron-right' })
+									h(Icon, { name: transferDialog.treeExpanded['/'] ? 'chevron-down' : 'chevron-right' })
 								),
 								h(
 									'button',
@@ -1029,6 +1187,73 @@
 						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
 							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-manager')) : null,
 							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })
+						)
+					)
+				) : null,
+				transferDialog.open ? h('div', {
+					className: 'mfm-editor-modal mfm-transfer-modal',
+					role: 'dialog',
+					'aria-modal': 'true',
+					'aria-label': transferDialog.isCopy ? __('Copy item', 'modern-file-manager') : __('Move item', 'modern-file-manager'),
+					onClick: closeTransferDialog,
+				},
+					h('div', {
+						className: 'mfm-transfer-window',
+						onClick: (event) => event.stopPropagation(),
+					},
+						h('div', { className: 'mfm-transfer-header' },
+							h('strong', null, transferDialog.isCopy ? __('Copy To...', 'modern-file-manager') : __('Move To...', 'modern-file-manager')),
+							h('button', { type: 'button', className: 'button', onClick: closeTransferDialog, disabled: transferDialog.submitting }, __('Cancel', 'modern-file-manager'))
+						),
+						h('p', { className: 'mfm-transfer-source' },
+							`${__('Item:', 'modern-file-manager')} ${transferDialog.item ? transferDialog.item.path : ''}`
+						),
+						h('div', { className: 'mfm-transfer-tree' },
+							h(
+								'div',
+								{ className: `mfm-tree-node is-root ${transferDialog.destination === '/' ? 'is-active' : ''}` },
+								h(
+									'button',
+									{
+										type: 'button',
+										className: 'mfm-tree-toggle',
+										onClick: () => toggleTreeNode('/'),
+										'aria-label': treeExpanded['/'] ? __('Collapse root', 'modern-file-manager') : __('Expand root', 'modern-file-manager'),
+									},
+									h(Icon, { name: treeExpanded['/'] ? 'chevron-down' : 'chevron-right' })
+								),
+								h(
+									'button',
+									{
+										type: 'button',
+										className: 'mfm-tree-link',
+										onClick: () => setTransferDialog((current) => ({ ...current, destination: '/' })),
+									},
+									h(Icon, { name: 'folder' }),
+									h('span', null, __('Root', 'modern-file-manager'))
+								)
+							),
+							transferDialog.treeExpanded['/'] ? renderTransferTreeNodes('/', 1) : null
+						),
+						h('div', { className: 'mfm-transfer-path' },
+							h('span', null, __('Destination:', 'modern-file-manager')),
+							h('code', null, transferDialog.destination)
+						),
+						transferInvalidReason ? h('p', { className: 'mfm-transfer-error' }, transferInvalidReason) : null,
+						h('div', { className: 'mfm-transfer-actions' },
+							h('button', { type: 'button', className: 'button', onClick: closeTransferDialog, disabled: transferDialog.submitting }, __('Cancel', 'modern-file-manager')),
+							h(
+								'button',
+								{
+									type: 'button',
+									className: 'button button-primary',
+									onClick: confirmTransfer,
+									disabled: !!transferInvalidReason || transferDialog.submitting,
+								},
+								transferDialog.submitting
+									? __('Working...', 'modern-file-manager')
+									: (transferDialog.isCopy ? __('Copy Here', 'modern-file-manager') : __('Move Here', 'modern-file-manager'))
+							)
 						)
 					)
 				) : null,
