@@ -11,6 +11,7 @@
     }
   },
   "scripts": {
-    "test": "phpunit --configuration phpunit.xml.dist"
+    "test": "phpunit --configuration phpunit.xml.dist",
+    "make-pot": "wp i18n make-pot . languages/modern-file-db-manager.pot --slug=modern-file-db-manager"
   }
 }

@@ -78,7 +78,7 @@
 		});
 
 		if (!response.ok) {
-			let message = __('Request failed.', 'modern-file-manager');
+			let message = __('Request failed.', 'modern-file-db-manager');
 			try {
 				const payload = await response.json();
 				if (payload && payload.message) {
@@ -200,7 +200,7 @@
 				resolve(window.MFMCodeMirror);
 				return;
 			}
-			reject(new Error(__('Editor modules failed to load.', 'modern-file-manager')));
+			reject(new Error(__('Editor modules failed to load.', 'modern-file-db-manager')));
 		});
 
 		return cmModulesPromise;
@@ -489,11 +489,11 @@
 		}
 
 		async function handleCreateFolder() {
-			const name = window.prompt(__('Folder name:', 'modern-file-manager'));
+			const name = window.prompt(__('Folder name:', 'modern-file-db-manager'));
 			if (!name) return;
 			try {
 				await apiFetch('/mkdir', { method: 'POST', body: { path, name } });
-				toast('success', __('Folder created.', 'modern-file-manager'));
+				toast('success', __('Folder created.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
@@ -501,11 +501,11 @@
 		}
 
 		async function handleCreateFile() {
-			const name = window.prompt(__('File name:', 'modern-file-manager'));
+			const name = window.prompt(__('File name:', 'modern-file-db-manager'));
 			if (!name) return;
 			try {
 				await apiFetch('/create-file', { method: 'POST', body: { path, name } });
-				toast('success', __('File created.', 'modern-file-manager'));
+				toast('success', __('File created.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
@@ -515,14 +515,14 @@
 		async function handleRename(targetItem) {
 			const current = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
 			if (!current) {
-				toast('error', __('Select exactly one item to rename.', 'modern-file-manager'));
+				toast('error', __('Select exactly one item to rename.', 'modern-file-db-manager'));
 				return;
 			}
-			const newName = window.prompt(__('New name:', 'modern-file-manager'), current.name);
+			const newName = window.prompt(__('New name:', 'modern-file-db-manager'), current.name);
 			if (!newName || newName === current.name) return;
 			try {
 				await apiFetch('/rename', { method: 'POST', body: { path: current.path, newName } });
-				toast('success', __('Item renamed.', 'modern-file-manager'));
+				toast('success', __('Item renamed.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
@@ -532,11 +532,11 @@
 		async function handleDelete(targetItems) {
 			const itemsToDelete = Array.isArray(targetItems) ? targetItems : selectedItems;
 			if (!itemsToDelete.length) {
-				toast('error', __('Select at least one item.', 'modern-file-manager'));
+				toast('error', __('Select at least one item.', 'modern-file-db-manager'));
 				return;
 			}
 			const confirmDelete = window.confirm(
-				__('Delete selected items permanently?', 'modern-file-manager')
+				__('Delete selected items permanently?', 'modern-file-db-manager')
 			);
 			if (!confirmDelete) return;
 
@@ -545,7 +545,7 @@
 						method: 'POST',
 						body: { paths: itemsToDelete.map((item) => item.path) },
 					});
-				toast('success', __('Items deleted.', 'modern-file-manager'));
+				toast('success', __('Items deleted.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
@@ -555,7 +555,7 @@
 		async function handleMove(isCopy, targetItem) {
 			const itemToMove = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
 			if (!itemToMove) {
-				toast('error', __('Select exactly one item.', 'modern-file-manager'));
+				toast('error', __('Select exactly one item.', 'modern-file-db-manager'));
 				return;
 			}
 			openTransferDialog(isCopy, itemToMove);
@@ -563,13 +563,13 @@
 
 		function getTransferInvalidReason(item, destinationPath) {
 			if (!item) {
-				return __('Select exactly one item.', 'modern-file-manager');
+				return __('Select exactly one item.', 'modern-file-db-manager');
 			}
 			const destination = normalizePath(destinationPath);
 			if (item.type === 'dir') {
 				const source = normalizePath(item.path);
 				if (destination === source || destination.startsWith(`${source}/`)) {
-					return __('Cannot place a folder inside itself.', 'modern-file-manager');
+					return __('Cannot place a folder inside itself.', 'modern-file-db-manager');
 				}
 			}
 			return '';
@@ -637,7 +637,7 @@
 						destination: normalizePath(transferDialog.destination),
 					},
 				});
-				toast('success', transferDialog.isCopy ? __('Item copied.', 'modern-file-manager') : __('Item moved.', 'modern-file-manager'));
+				toast('success', transferDialog.isCopy ? __('Item copied.', 'modern-file-db-manager') : __('Item moved.', 'modern-file-db-manager'));
 				closeTransferDialog();
 				refresh(path);
 			} catch (error) {
@@ -678,7 +678,7 @@
 			form.append('file', file);
 			try {
 				await apiFetch('/upload', { method: 'POST', body: form });
-				toast('success', __('File uploaded.', 'modern-file-manager'));
+				toast('success', __('File uploaded.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
@@ -690,7 +690,7 @@
 		function handleDownload(targetItem) {
 			const itemToDownload = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
 			if (!itemToDownload || itemToDownload.type !== 'file') {
-				toast('error', __('Select one file to download.', 'modern-file-manager'));
+				toast('error', __('Select one file to download.', 'modern-file-db-manager'));
 				return;
 			}
 			const target = buildUrl('/download', {
@@ -715,7 +715,7 @@
 				const content = String(fileData.content || '');
 				const mountNode = editorHostRef.current;
 				if (!mountNode) {
-					throw new Error(__('Editor container is not ready.', 'modern-file-manager'));
+					throw new Error(__('Editor container is not ready.', 'modern-file-db-manager'));
 				}
 
 				if (editorViewRef.current) {
@@ -787,7 +787,7 @@
 						content,
 					},
 				});
-				toast('success', __('File saved.', 'modern-file-manager'));
+				toast('success', __('File saved.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
@@ -799,7 +799,7 @@
 		function handleEdit(targetItem) {
 			const itemToEdit = targetItem || (selectedItems.length === 1 ? selectedItems[0] : null);
 			if (!itemToEdit || itemToEdit.type !== 'file') {
-				toast('error', __('Select one file to edit.', 'modern-file-manager'));
+				toast('error', __('Select one file to edit.', 'modern-file-db-manager'));
 				return;
 			}
 			openEditorForPath(itemToEdit.path);
@@ -882,7 +882,7 @@
 			const children = treeChildrenByPath[parentPath] || [];
 			if (!children.length) {
 				if (treeLoadingByPath[parentPath]) {
-					return h('div', { className: 'mfm-tree-empty' }, __('Loading...', 'modern-file-manager'));
+					return h('div', { className: 'mfm-tree-empty' }, __('Loading...', 'modern-file-db-manager'));
 				}
 				return null;
 			}
@@ -905,7 +905,7 @@
 								type: 'button',
 								className: 'mfm-tree-toggle',
 								onClick: () => toggleTreeNode(node.path),
-								'aria-label': expanded ? __('Collapse folder', 'modern-file-manager') : __('Expand folder', 'modern-file-manager'),
+								'aria-label': expanded ? __('Collapse folder', 'modern-file-db-manager') : __('Expand folder', 'modern-file-db-manager'),
 								disabled: !mayHaveChildren && !isLoading,
 							},
 							mayHaveChildren || isLoading ? h(Icon, { name: expanded ? 'chevron-down' : 'chevron-right' }) : null
@@ -930,7 +930,7 @@
 			const children = treeChildrenByPath[parentPath] || [];
 			if (!children.length) {
 				if (treeLoadingByPath[parentPath]) {
-					return h('div', { className: 'mfm-tree-empty' }, __('Loading...', 'modern-file-manager'));
+					return h('div', { className: 'mfm-tree-empty' }, __('Loading...', 'modern-file-db-manager'));
 				}
 				return null;
 			}
@@ -954,7 +954,7 @@
 									type: 'button',
 									className: 'mfm-tree-toggle',
 									onClick: () => toggleTransferTreeNode(node.path),
-									'aria-label': expanded ? __('Collapse folder', 'modern-file-manager') : __('Expand folder', 'modern-file-manager'),
+									'aria-label': expanded ? __('Collapse folder', 'modern-file-db-manager') : __('Expand folder', 'modern-file-db-manager'),
 									disabled: !mayHaveChildren && !isLoading,
 								},
 							mayHaveChildren || isLoading ? h(Icon, { name: expanded ? 'chevron-down' : 'chevron-right' }) : null
@@ -985,19 +985,19 @@
 				'div',
 				{ className: 'mfm-topbar' },
 					h('div', { className: 'mfm-actions' },
-						h('button', { className: 'button button-primary mfm-btn', onClick: handleCreateFolder }, h(Icon, { name: 'folder-add' }), h('span', null, __('New Folder', 'modern-file-manager'))),
-						h('button', { className: 'button mfm-btn', onClick: handleCreateFile }, h(Icon, { name: 'file-add' }), h('span', null, __('New File', 'modern-file-manager'))),
-						h('button', { className: 'button mfm-btn', onClick: handleUploadClick }, h(Icon, { name: 'upload' }), h('span', null, __('Upload', 'modern-file-manager'))),
-						h('button', { className: 'button mfm-btn', onClick: () => refresh(path) }, h(Icon, { name: 'refresh' }), h('span', null, __('Refresh', 'modern-file-manager')))
+						h('button', { className: 'button button-primary mfm-btn', onClick: handleCreateFolder }, h(Icon, { name: 'folder-add' }), h('span', null, __('New Folder', 'modern-file-db-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: handleCreateFile }, h(Icon, { name: 'file-add' }), h('span', null, __('New File', 'modern-file-db-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: handleUploadClick }, h(Icon, { name: 'upload' }), h('span', null, __('Upload', 'modern-file-db-manager'))),
+						h('button', { className: 'button mfm-btn', onClick: () => refresh(path) }, h(Icon, { name: 'refresh' }), h('span', null, __('Refresh', 'modern-file-db-manager')))
 					),
 				h('div', { className: 'mfm-search-wrap' },
 					h('input', {
 						type: 'search',
 						className: 'mfm-search',
-						placeholder: __('Search in current folder...', 'modern-file-manager'),
+						placeholder: __('Search in current folder...', 'modern-file-db-manager'),
 						value: search,
 						onChange: (event) => setSearch(event.target.value),
-						'aria-label': __('Search files and folders', 'modern-file-manager'),
+						'aria-label': __('Search files and folders', 'modern-file-db-manager'),
 					})
 				),
 				h('input', {
@@ -1020,8 +1020,8 @@
 				)
 			),
 				h('div', { className: 'mfm-layout' },
-					h('aside', { className: 'mfm-sidebar', 'aria-label': __('Directory shortcuts', 'modern-file-manager') },
-						h('h2', null, __('Folders', 'modern-file-manager')),
+					h('aside', { className: 'mfm-sidebar', 'aria-label': __('Directory shortcuts', 'modern-file-db-manager') },
+						h('h2', null, __('Folders', 'modern-file-db-manager')),
 						h(
 							'div',
 							{ className: 'mfm-tree-root' },
@@ -1034,7 +1034,7 @@
 										type: 'button',
 										className: 'mfm-tree-toggle',
 										onClick: () => toggleTransferTreeNode('/'),
-										'aria-label': transferDialog.treeExpanded['/'] ? __('Collapse root', 'modern-file-manager') : __('Expand root', 'modern-file-manager'),
+										'aria-label': transferDialog.treeExpanded['/'] ? __('Collapse root', 'modern-file-db-manager') : __('Expand root', 'modern-file-db-manager'),
 									},
 									h(Icon, { name: transferDialog.treeExpanded['/'] ? 'chevron-down' : 'chevron-right' })
 								),
@@ -1042,7 +1042,7 @@
 									'button',
 									{ type: 'button', className: 'mfm-tree-link', onClick: () => refresh('/') },
 									h(Icon, { name: 'folder' }),
-									h('span', null, __('Root', 'modern-file-manager'))
+									h('span', null, __('Root', 'modern-file-db-manager'))
 								)
 							),
 							treeExpanded['/'] ? renderTreeNodes('/', 1) : null
@@ -1054,13 +1054,13 @@
 							h('tr', null,
 								h('th', { className: 'mfm-col-check' }, ''),
 								h('th', null,
-									h('button', { className: 'mfm-sort', onClick: () => toggleSort('name') }, __('Name', 'modern-file-manager'))
+									h('button', { className: 'mfm-sort', onClick: () => toggleSort('name') }, __('Name', 'modern-file-db-manager'))
 								),
 								h('th', null,
-									h('button', { className: 'mfm-sort', onClick: () => toggleSort('size') }, __('Size', 'modern-file-manager'))
+									h('button', { className: 'mfm-sort', onClick: () => toggleSort('size') }, __('Size', 'modern-file-db-manager'))
 								),
 								h('th', null,
-									h('button', { className: 'mfm-sort', onClick: () => toggleSort('modified') }, __('Modified', 'modern-file-manager'))
+									h('button', { className: 'mfm-sort', onClick: () => toggleSort('modified') }, __('Modified', 'modern-file-db-manager'))
 								)
 							)
 						),
@@ -1073,7 +1073,7 @@
 									h('td', null, h('span', { className: 'mfm-skeleton-line' }))
 								)) :
 								(filteredSortedItems.length === 0 ?
-									h('tr', { className: 'mfm-empty-row' }, h('td', { colSpan: 4 }, __('No items in this folder.', 'modern-file-manager'))) :
+									h('tr', { className: 'mfm-empty-row' }, h('td', { colSpan: 4 }, __('No items in this folder.', 'modern-file-db-manager'))) :
 										filteredSortedItems.map((item) =>
 												h('tr', {
 													key: item.path,
@@ -1086,7 +1086,7 @@
 													type: 'checkbox',
 													checked: !!selected[item.path],
 													onChange: () => toggleSelection(item.path),
-													'aria-label': __('Select item', 'modern-file-manager'),
+													'aria-label': __('Select item', 'modern-file-db-manager'),
 												})
 											),
 											h('td', null,
@@ -1110,20 +1110,20 @@
 					)
 				),
 				h('aside', { className: 'mfm-detail' },
-					h('h2', null, __('Details', 'modern-file-manager')),
+					h('h2', null, __('Details', 'modern-file-db-manager')),
 					selectedItem ?
 						h('div', { className: 'mfm-meta' },
-							h('p', null, h('strong', null, __('Name:', 'modern-file-manager')), ` ${selectedItem.name}`),
-							h('p', null, h('strong', null, __('Path:', 'modern-file-manager')), ` ${selectedItem.path}`),
-							h('p', null, h('strong', null, __('Type:', 'modern-file-manager')), ` ${selectedItem.type}`),
-							h('p', null, h('strong', null, __('Size:', 'modern-file-manager')), ` ${selectedItem.type === 'dir' ? '-' : formatBytes(selectedItem.size)}`),
-							h('p', null, h('strong', null, __('Modified:', 'modern-file-manager')), ` ${formatDate(selectedItem.modified)}`),
+							h('p', null, h('strong', null, __('Name:', 'modern-file-db-manager')), ` ${selectedItem.name}`),
+							h('p', null, h('strong', null, __('Path:', 'modern-file-db-manager')), ` ${selectedItem.path}`),
+							h('p', null, h('strong', null, __('Type:', 'modern-file-db-manager')), ` ${selectedItem.type}`),
+							h('p', null, h('strong', null, __('Size:', 'modern-file-db-manager')), ` ${selectedItem.type === 'dir' ? '-' : formatBytes(selectedItem.size)}`),
+							h('p', null, h('strong', null, __('Modified:', 'modern-file-db-manager')), ` ${formatDate(selectedItem.modified)}`),
 							h('p', { className: 'mfm-badge-wrap' },
-								h('span', { className: `mfm-badge ${selectedItem.readable ? 'is-ok' : ''}` }, selectedItem.readable ? __('Readable', 'modern-file-manager') : __('Not readable', 'modern-file-manager')),
-								h('span', { className: `mfm-badge ${selectedItem.writable ? 'is-ok' : ''}` }, selectedItem.writable ? __('Writable', 'modern-file-manager') : __('Not writable', 'modern-file-manager'))
+								h('span', { className: `mfm-badge ${selectedItem.readable ? 'is-ok' : ''}` }, selectedItem.readable ? __('Readable', 'modern-file-db-manager') : __('Not readable', 'modern-file-db-manager')),
+								h('span', { className: `mfm-badge ${selectedItem.writable ? 'is-ok' : ''}` }, selectedItem.writable ? __('Writable', 'modern-file-db-manager') : __('Not writable', 'modern-file-db-manager'))
 							)
 						)
-						: h('p', { className: 'mfm-empty-note' }, __('Select one item to view details.', 'modern-file-manager'))
+						: h('p', { className: 'mfm-empty-note' }, __('Select one item to view details.', 'modern-file-db-manager'))
 				)
 				)
 				,
@@ -1133,25 +1133,25 @@
 						onClick: (event) => event.stopPropagation(),
 					},
 						contextMenu.mode === 'workspace' ? [
-							h('button', { key: 'new-folder', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('new-folder') }, __('New Folder', 'modern-file-manager')),
-							h('button', { key: 'new-file', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('new-file') }, __('New File', 'modern-file-manager')),
-							h('button', { key: 'upload', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('upload') }, __('Upload', 'modern-file-manager')),
-							h('button', { key: 'refresh', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('refresh') }, __('Refresh', 'modern-file-manager')),
+							h('button', { key: 'new-folder', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('new-folder') }, __('New Folder', 'modern-file-db-manager')),
+							h('button', { key: 'new-file', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('new-file') }, __('New File', 'modern-file-db-manager')),
+							h('button', { key: 'upload', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('upload') }, __('Upload', 'modern-file-db-manager')),
+							h('button', { key: 'refresh', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('refresh') }, __('Refresh', 'modern-file-db-manager')),
 						] : [
-							contextMenu.item && contextMenu.item.type === 'dir' ? h('button', { key: 'open-folder', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open-folder') }, __('Open Folder', 'modern-file-manager')) : null,
-							contextMenu.item && contextMenu.item.type === 'file' ? h('button', { key: 'edit', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('edit') }, __('Edit File', 'modern-file-manager')) : null,
-							h('button', { key: 'rename', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('rename') }, __('Rename', 'modern-file-manager')),
-							h('button', { key: 'move', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('move') }, __('Move', 'modern-file-manager')),
-							h('button', { key: 'copy', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('copy') }, __('Copy', 'modern-file-manager')),
-							contextMenu.item && contextMenu.item.type === 'file' ? h('button', { key: 'download', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('download') }, __('Download', 'modern-file-manager')) : null,
-							h('button', { key: 'delete', type: 'button', className: 'mfm-context-item is-danger', onClick: () => runContextAction('delete') }, __('Delete', 'modern-file-manager')),
+							contextMenu.item && contextMenu.item.type === 'dir' ? h('button', { key: 'open-folder', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('open-folder') }, __('Open Folder', 'modern-file-db-manager')) : null,
+							contextMenu.item && contextMenu.item.type === 'file' ? h('button', { key: 'edit', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('edit') }, __('Edit File', 'modern-file-db-manager')) : null,
+							h('button', { key: 'rename', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('rename') }, __('Rename', 'modern-file-db-manager')),
+							h('button', { key: 'move', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('move') }, __('Move', 'modern-file-db-manager')),
+							h('button', { key: 'copy', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('copy') }, __('Copy', 'modern-file-db-manager')),
+							contextMenu.item && contextMenu.item.type === 'file' ? h('button', { key: 'download', type: 'button', className: 'mfm-context-item', onClick: () => runContextAction('download') }, __('Download', 'modern-file-db-manager')) : null,
+							h('button', { key: 'delete', type: 'button', className: 'mfm-context-item is-danger', onClick: () => runContextAction('delete') }, __('Delete', 'modern-file-db-manager')),
 						]
 					) : null,
 				editorOpen ? h('div', {
 					className: 'mfm-editor-modal',
 					role: 'dialog',
 					'aria-modal': 'true',
-					'aria-label': __('File editor', 'modern-file-manager'),
+					'aria-label': __('File editor', 'modern-file-db-manager'),
 					onClick: closeEditor,
 				},
 					h('div', {
@@ -1159,33 +1159,33 @@
 						onClick: (event) => event.stopPropagation(),
 						},
 							h('div', { className: 'mfm-editor-topbar' },
-								h('strong', { className: 'mfm-editor-path' }, editorPath || __('Editor', 'modern-file-manager')),
+								h('strong', { className: 'mfm-editor-path' }, editorPath || __('Editor', 'modern-file-db-manager')),
 								h('div', { className: 'mfm-editor-actions' },
 									h(
 										'label',
 										{ className: 'mfm-editor-theme' },
-										h('span', null, __('Theme', 'modern-file-manager')),
+										h('span', null, __('Theme', 'modern-file-db-manager')),
 										h(
 											'select',
 											{
 												value: editorTheme,
 												onChange: (event) => setEditorTheme(editorThemeOptions.includes(event.target.value) ? event.target.value : 'light'),
-												'aria-label': __('Editor theme', 'modern-file-manager'),
+												'aria-label': __('Editor theme', 'modern-file-db-manager'),
 											},
-											h('option', { value: 'light' }, __('Light', 'modern-file-manager')),
-											h('option', { value: 'one-dark' }, __('One Dark', 'modern-file-manager')),
-											h('option', { value: 'monokai' }, __('Monokai', 'modern-file-manager')),
-											h('option', { value: 'solarized-dark' }, __('Solarized Dark', 'modern-file-manager')),
-											h('option', { value: 'tokyo-night-storm' }, __('Tokyo Night', 'modern-file-manager')),
-											h('option', { value: 'nord' }, __('Nord', 'modern-file-manager'))
+											h('option', { value: 'light' }, __('Light', 'modern-file-db-manager')),
+											h('option', { value: 'one-dark' }, __('One Dark', 'modern-file-db-manager')),
+											h('option', { value: 'monokai' }, __('Monokai', 'modern-file-db-manager')),
+											h('option', { value: 'solarized-dark' }, __('Solarized Dark', 'modern-file-db-manager')),
+											h('option', { value: 'tokyo-night-storm' }, __('Tokyo Night', 'modern-file-db-manager')),
+											h('option', { value: 'nord' }, __('Nord', 'modern-file-db-manager'))
 										)
 									),
-									h('button', { type: 'button', className: 'button', onClick: closeEditor }, __('Close', 'modern-file-manager')),
-									h('button', { type: 'button', className: 'button button-primary', onClick: saveEditor, disabled: editorSaving || editorLoading }, editorSaving ? __('Saving...', 'modern-file-manager') : __('Save', 'modern-file-manager'))
+									h('button', { type: 'button', className: 'button', onClick: closeEditor }, __('Close', 'modern-file-db-manager')),
+									h('button', { type: 'button', className: 'button button-primary', onClick: saveEditor, disabled: editorSaving || editorLoading }, editorSaving ? __('Saving...', 'modern-file-db-manager') : __('Save', 'modern-file-db-manager'))
 								)
 							),
 						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
-							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-manager')) : null,
+							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-db-manager')) : null,
 							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })
 						)
 					)
@@ -1194,7 +1194,7 @@
 					className: 'mfm-editor-modal mfm-transfer-modal',
 					role: 'dialog',
 					'aria-modal': 'true',
-					'aria-label': transferDialog.isCopy ? __('Copy item', 'modern-file-manager') : __('Move item', 'modern-file-manager'),
+					'aria-label': transferDialog.isCopy ? __('Copy item', 'modern-file-db-manager') : __('Move item', 'modern-file-db-manager'),
 					onClick: closeTransferDialog,
 				},
 					h('div', {
@@ -1202,11 +1202,11 @@
 						onClick: (event) => event.stopPropagation(),
 					},
 						h('div', { className: 'mfm-transfer-header' },
-							h('strong', null, transferDialog.isCopy ? __('Copy To...', 'modern-file-manager') : __('Move To...', 'modern-file-manager')),
-							h('button', { type: 'button', className: 'button', onClick: closeTransferDialog, disabled: transferDialog.submitting }, __('Cancel', 'modern-file-manager'))
+							h('strong', null, transferDialog.isCopy ? __('Copy To...', 'modern-file-db-manager') : __('Move To...', 'modern-file-db-manager')),
+							h('button', { type: 'button', className: 'button', onClick: closeTransferDialog, disabled: transferDialog.submitting }, __('Cancel', 'modern-file-db-manager'))
 						),
 						h('p', { className: 'mfm-transfer-source' },
-							`${__('Item:', 'modern-file-manager')} ${transferDialog.item ? transferDialog.item.path : ''}`
+							`${__('Item:', 'modern-file-db-manager')} ${transferDialog.item ? transferDialog.item.path : ''}`
 						),
 						h('div', { className: 'mfm-transfer-tree' },
 							h(
@@ -1218,7 +1218,7 @@
 										type: 'button',
 										className: 'mfm-tree-toggle',
 										onClick: () => toggleTreeNode('/'),
-										'aria-label': treeExpanded['/'] ? __('Collapse root', 'modern-file-manager') : __('Expand root', 'modern-file-manager'),
+										'aria-label': treeExpanded['/'] ? __('Collapse root', 'modern-file-db-manager') : __('Expand root', 'modern-file-db-manager'),
 									},
 									h(Icon, { name: treeExpanded['/'] ? 'chevron-down' : 'chevron-right' })
 								),
@@ -1230,18 +1230,18 @@
 										onClick: () => setTransferDialog((current) => ({ ...current, destination: '/' })),
 									},
 									h(Icon, { name: 'folder' }),
-									h('span', null, __('Root', 'modern-file-manager'))
+									h('span', null, __('Root', 'modern-file-db-manager'))
 								)
 							),
 							transferDialog.treeExpanded['/'] ? renderTransferTreeNodes('/', 1) : null
 						),
 						h('div', { className: 'mfm-transfer-path' },
-							h('span', null, __('Destination:', 'modern-file-manager')),
+							h('span', null, __('Destination:', 'modern-file-db-manager')),
 							h('code', null, transferDialog.destination)
 						),
 						transferInvalidReason ? h('p', { className: 'mfm-transfer-error' }, transferInvalidReason) : null,
 						h('div', { className: 'mfm-transfer-actions' },
-							h('button', { type: 'button', className: 'button', onClick: closeTransferDialog, disabled: transferDialog.submitting }, __('Cancel', 'modern-file-manager')),
+							h('button', { type: 'button', className: 'button', onClick: closeTransferDialog, disabled: transferDialog.submitting }, __('Cancel', 'modern-file-db-manager')),
 							h(
 								'button',
 								{
@@ -1251,8 +1251,8 @@
 									disabled: !!transferInvalidReason || transferDialog.submitting,
 								},
 								transferDialog.submitting
-									? __('Working...', 'modern-file-manager')
-									: (transferDialog.isCopy ? __('Copy Here', 'modern-file-manager') : __('Move Here', 'modern-file-manager'))
+									? __('Working...', 'modern-file-db-manager')
+									: (transferDialog.isCopy ? __('Copy Here', 'modern-file-db-manager') : __('Move Here', 'modern-file-db-manager'))
 							)
 						)
 					)

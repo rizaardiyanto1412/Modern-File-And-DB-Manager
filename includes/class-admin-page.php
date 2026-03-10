@@ -37,10 +37,10 @@ class Admin_Page {
 	 */
 	public function register_menu() {
 		$this->hook_suffix = add_menu_page(
-			esc_html__( 'Modern File Manager', 'modern-file-manager' ),
-			esc_html__( 'File Manager', 'modern-file-manager' ),
+			esc_html__( 'Modern File Manager', 'modern-file-db-manager' ),
+			esc_html__( 'File Manager', 'modern-file-db-manager' ),
 			'manage_options',
-			'modern-file-manager',
+			'modern-file-db-manager',
 			array( $this, 'render_page' ),
 			'dashicons-portfolio',
 			59
@@ -54,7 +54,7 @@ class Admin_Page {
 	 */
 	public function render_page() {
 		echo '<div class="wrap mfm-page-wrap">';
-		echo '<h1 class="mfm-title">' . esc_html__( 'Modern File Manager', 'modern-file-manager' ) . '</h1>';
+		echo '<h1 class="mfm-title">' . esc_html__( 'Modern File Manager', 'modern-file-db-manager' ) . '</h1>';
 		echo '<div id="mfm-app" aria-live="polite"></div>';
 		echo '</div>';
 	}
@@ -93,7 +93,7 @@ class Admin_Page {
 			true
 		);
 
-		wp_set_script_translations( 'mfm-admin-script', 'modern-file-manager', MFM_PLUGIN_DIR . 'languages' );
+		wp_set_script_translations( 'mfm-admin-script', 'modern-file-db-manager', MFM_PLUGIN_DIR . 'languages' );
 
 		wp_localize_script(
 			'mfm-admin-script',
@@ -102,7 +102,7 @@ class Admin_Page {
 				'restUrl'      => esc_url_raw( rest_url( 'modern-file-manager/v1' ) ),
 				'nonce'        => wp_create_nonce( 'wp_rest' ),
 				'initialPath'  => '/',
-				'pluginTitle'  => esc_html__( 'Modern File Manager', 'modern-file-manager' ),
+				'pluginTitle'  => esc_html__( 'Modern File Manager', 'modern-file-db-manager' ),
 				'capability'   => 'manage_options',
 				'maxUploadMib' => (int) wp_max_upload_size() / ( 1024 * 1024 ),
 			)

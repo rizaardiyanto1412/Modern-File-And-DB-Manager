@@ -1,5 +1,5 @@
-=== Modern File Manager ===
-Contributors: modern-file-manager
+=== Modern File & DB Manager ===
+Contributors: modern-file-db-manager
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.1
@@ -11,12 +11,12 @@ A secure and modern admin file manager for WordPress with interactive navigation
 
 == Description ==
 
-Modern File Manager provides a responsive file browser in wp-admin with REST-based actions, folder tree navigation, context menu actions, and an in-app CodeMirror editor.
+Modern File & DB Manager provides a responsive file browser in wp-admin with REST-based actions, folder tree navigation, context menu actions, and an in-app CodeMirror editor.
 It also includes an optional Adminer-based DB Manager page with tokenized launch and admin capability checks.
 
 == Installation ==
 
-1. Upload the plugin to `/wp-content/plugins/modern-file-manager`.
+1. Upload the plugin to `/wp-content/plugins/modern-file-db-manager`.
 2. Activate the plugin through the WordPress admin.
 3. Open `File Manager` from wp-admin menu.
 

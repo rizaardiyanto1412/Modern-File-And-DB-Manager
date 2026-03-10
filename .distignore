@@ -1,5 +1,7 @@
 .git/
 .gitignore
+.distignore
+.DS_Store
 .phpunit.cache/
 .playwright-cli/
 dist/

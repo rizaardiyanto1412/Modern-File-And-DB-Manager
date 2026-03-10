@@ -67,12 +67,12 @@ class Filesystem_Service {
 		}
 
 		if ( ! is_dir( $resolved ) ) {
-			return new WP_Error( 'invalid_path', __( 'Target path is not a directory.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Target path is not a directory.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		$entries = @scandir( $resolved );
 		if ( false === $entries ) {
-			return new WP_Error( 'io_error', __( 'Unable to read this directory.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to read this directory.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		$items = array();
@@ -140,11 +140,11 @@ class Filesystem_Service {
 		}
 
 		if ( file_exists( $target_abs ) ) {
-			return new WP_Error( 'conflict', __( 'A file or folder with this name already exists.', 'modern-file-manager' ), array( 'status' => 409 ) );
+			return new WP_Error( 'conflict', __( 'A file or folder with this name already exists.', 'modern-file-db-manager' ), array( 'status' => 409 ) );
 		}
 
 		if ( ! wp_mkdir_p( $target_abs ) ) {
-			return new WP_Error( 'io_error', __( 'Unable to create folder.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to create folder.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array( 'path' => $this->to_relative_path( $target_abs ) );
@@ -175,12 +175,12 @@ class Filesystem_Service {
 		}
 
 		if ( file_exists( $target_abs ) ) {
-			return new WP_Error( 'conflict', __( 'A file or folder with this name already exists.', 'modern-file-manager' ), array( 'status' => 409 ) );
+			return new WP_Error( 'conflict', __( 'A file or folder with this name already exists.', 'modern-file-db-manager' ), array( 'status' => 409 ) );
 		}
 
 		$created = @file_put_contents( $target_abs, '' );
 		if ( false === $created ) {
-			return new WP_Error( 'io_error', __( 'Unable to create file.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to create file.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array( 'path' => $this->to_relative_path( $target_abs ) );
@@ -211,11 +211,11 @@ class Filesystem_Service {
 		}
 
 		if ( file_exists( $dest_abs ) ) {
-			return new WP_Error( 'conflict', __( 'Destination already exists.', 'modern-file-manager' ), array( 'status' => 409 ) );
+			return new WP_Error( 'conflict', __( 'Destination already exists.', 'modern-file-db-manager' ), array( 'status' => 409 ) );
 		}
 
 		if ( ! $this->move_path_with_filesystem( $source_abs, $dest_abs ) ) {
-			return new WP_Error( 'io_error', __( 'Unable to rename.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to rename.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array( 'path' => $this->to_relative_path( $dest_abs ) );
@@ -238,7 +238,7 @@ class Filesystem_Service {
 			return $dest_abs;
 		}
 		if ( ! is_dir( $dest_abs ) ) {
-			return new WP_Error( 'invalid_path', __( 'Destination must be a directory.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Destination must be a directory.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		$target_abs = wp_normalize_path( $dest_abs . '/' . basename( $source_abs ) );
@@ -248,11 +248,11 @@ class Filesystem_Service {
 		}
 
 		if ( file_exists( $target_abs ) ) {
-			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-manager' ), array( 'status' => 409 ) );
+			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-db-manager' ), array( 'status' => 409 ) );
 		}
 
 		if ( ! $this->move_path_with_filesystem( $source_abs, $target_abs ) ) {
-			return new WP_Error( 'io_error', __( 'Unable to move item.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to move item.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array( 'path' => $this->to_relative_path( $target_abs ) );
@@ -275,7 +275,7 @@ class Filesystem_Service {
 			return $dest_abs;
 		}
 		if ( ! is_dir( $dest_abs ) ) {
-			return new WP_Error( 'invalid_path', __( 'Destination must be a directory.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Destination must be a directory.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		$target_abs = wp_normalize_path( $dest_abs . '/' . basename( $source_abs ) );
@@ -285,7 +285,7 @@ class Filesystem_Service {
 		}
 
 		if ( file_exists( $target_abs ) ) {
-			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-manager' ), array( 'status' => 409 ) );
+			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-db-manager' ), array( 'status' => 409 ) );
 		}
 
 		$result = is_dir( $source_abs )
@@ -293,7 +293,7 @@ class Filesystem_Service {
 			: @copy( $source_abs, $target_abs );
 
 		if ( ! $result ) {
-			return new WP_Error( 'io_error', __( 'Unable to copy item.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to copy item.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array( 'path' => $this->to_relative_path( $target_abs ) );
@@ -313,12 +313,12 @@ class Filesystem_Service {
 				return $target_abs;
 			}
 			if ( $this->to_relative_path( $target_abs ) === '/' ) {
-				return new WP_Error( 'forbidden', __( 'Deleting the sandbox root is not allowed.', 'modern-file-manager' ), array( 'status' => 403 ) );
+				return new WP_Error( 'forbidden', __( 'Deleting the sandbox root is not allowed.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 			}
 
 			$ok = is_dir( $target_abs ) ? $this->delete_directory_recursive( $target_abs ) : wp_delete_file( $target_abs );
 			if ( ! $ok ) {
-				return new WP_Error( 'io_error', __( 'Unable to delete item.', 'modern-file-manager' ), array( 'status' => 500 ) );
+				return new WP_Error( 'io_error', __( 'Unable to delete item.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 			}
 
 			$deleted[] = $path;
@@ -340,11 +340,11 @@ class Filesystem_Service {
 			return $dest_abs;
 		}
 		if ( ! is_dir( $dest_abs ) ) {
-			return new WP_Error( 'invalid_path', __( 'Upload destination must be a directory.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Upload destination must be a directory.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		if ( ! isset( $file['error'] ) || UPLOAD_ERR_OK !== (int) $file['error'] ) {
-			return new WP_Error( 'io_error', __( 'Upload failed.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'io_error', __( 'Upload failed.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		$filename = $this->sanitize_new_name( (string) $file['name'] );
@@ -359,16 +359,16 @@ class Filesystem_Service {
 		}
 
 		if ( file_exists( $target_abs ) ) {
-			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-manager' ), array( 'status' => 409 ) );
+			return new WP_Error( 'conflict', __( 'Destination already contains an item with the same name.', 'modern-file-db-manager' ), array( 'status' => 409 ) );
 		}
 
 		$tmp_name = isset( $file['tmp_name'] ) ? (string) $file['tmp_name'] : '';
 		if ( ! is_uploaded_file( $tmp_name ) ) {
-			return new WP_Error( 'forbidden', __( 'Invalid uploaded file.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'Invalid uploaded file.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		if ( ! @copy( $tmp_name, $target_abs ) ) {
-			return new WP_Error( 'io_error', __( 'Unable to store uploaded file.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to store uploaded file.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 		wp_delete_file( $tmp_name );
 
@@ -387,7 +387,7 @@ class Filesystem_Service {
 			return $resolved;
 		}
 		if ( ! is_file( $resolved ) ) {
-			return new WP_Error( 'invalid_path', __( 'Download target must be a file.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Download target must be a file.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		return $resolved;
@@ -405,20 +405,20 @@ class Filesystem_Service {
 			return $resolved;
 		}
 		if ( ! is_file( $resolved ) ) {
-			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 		if ( ! is_readable( $resolved ) ) {
-			return new WP_Error( 'forbidden', __( 'File is not readable.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'File is not readable.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		$size = @filesize( $resolved );
 		if ( false !== $size && $size > 1024 * 1024 * 2 ) {
-			return new WP_Error( 'file_too_large', __( 'File exceeds 2 MB editor limit.', 'modern-file-manager' ), array( 'status' => 413 ) );
+			return new WP_Error( 'file_too_large', __( 'File exceeds 2 MB editor limit.', 'modern-file-db-manager' ), array( 'status' => 413 ) );
 		}
 
 		$content = @file_get_contents( $resolved );
 		if ( false === $content ) {
-			return new WP_Error( 'io_error', __( 'Unable to read file.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to read file.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array(
@@ -440,15 +440,15 @@ class Filesystem_Service {
 			return $resolved;
 		}
 		if ( ! is_file( $resolved ) ) {
-			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_path', __( 'Editor target must be a file.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 		if ( ! wp_is_writable( $resolved ) ) {
-			return new WP_Error( 'forbidden', __( 'File is not writable.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'File is not writable.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		$written = @file_put_contents( $resolved, (string) $content, LOCK_EX );
 		if ( false === $written ) {
-			return new WP_Error( 'io_error', __( 'Unable to save file.', 'modern-file-manager' ), array( 'status' => 500 ) );
+			return new WP_Error( 'io_error', __( 'Unable to save file.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
 		}
 
 		return array(
@@ -487,22 +487,22 @@ class Filesystem_Service {
 		$relative_path = $this->sanitize_relative_path( $relative_path );
 
 		if ( $this->is_denied_path( $relative_path ) ) {
-			return new WP_Error( 'forbidden', __( 'Access to this path is blocked.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'Access to this path is blocked.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		$candidate = wp_normalize_path( $this->root . ( '/' === $relative_path ? '' : $relative_path ) );
 		$resolved  = realpath( $candidate );
 		if ( false === $resolved ) {
-			return new WP_Error( 'not_found', __( 'Path not found.', 'modern-file-manager' ), array( 'status' => 404 ) );
+			return new WP_Error( 'not_found', __( 'Path not found.', 'modern-file-db-manager' ), array( 'status' => 404 ) );
 		}
 
 		$resolved = wp_normalize_path( $resolved );
 		if ( ! $this->is_within_root( $resolved ) ) {
-			return new WP_Error( 'out_of_scope', __( 'Path is outside the allowed sandbox.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'out_of_scope', __( 'Path is outside the allowed sandbox.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		if ( $this->is_denied_path( $this->to_relative_path( $resolved ) ) ) {
-			return new WP_Error( 'forbidden', __( 'Access to this path is blocked.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'Access to this path is blocked.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		return $resolved;
@@ -519,11 +519,11 @@ class Filesystem_Service {
 
 		$parent = wp_normalize_path( dirname( $target_abs ) );
 		if ( ! $this->is_within_root( $parent ) ) {
-			return new WP_Error( 'out_of_scope', __( 'Path is outside the allowed sandbox.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'out_of_scope', __( 'Path is outside the allowed sandbox.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		if ( $this->is_denied_path( $this->to_relative_path( $target_abs ) ) ) {
-			return new WP_Error( 'forbidden', __( 'This path is blocked by policy.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'This path is blocked by policy.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		return true;
@@ -585,11 +585,11 @@ class Filesystem_Service {
 		$name = trim( $name );
 
 		if ( '' === $name ) {
-			return new WP_Error( 'invalid_name', __( 'Please provide a valid file or folder name.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_name', __( 'Please provide a valid file or folder name.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		if ( preg_match( '#[/\\\\]#', $name ) ) {
-			return new WP_Error( 'invalid_name', __( 'Invalid characters in file or folder name.', 'modern-file-manager' ), array( 'status' => 400 ) );
+			return new WP_Error( 'invalid_name', __( 'Invalid characters in file or folder name.', 'modern-file-db-manager' ), array( 'status' => 400 ) );
 		}
 
 		return $name;

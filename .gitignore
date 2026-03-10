@@ -3,3 +3,4 @@
 /playwright-report/
 /test-results/
 .phpunit.cache/
+/dist/

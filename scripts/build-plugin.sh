@@ -20,6 +20,7 @@ fi
 
 ZIP_NAME="${PLUGIN_SLUG}-${VERSION}.zip"
 ZIP_PATH="$DIST_DIR/$ZIP_NAME"
+EXTRACT_DIR="$DIST_DIR/$PLUGIN_SLUG"
 
 mkdir -p "$DIST_DIR"
 
@@ -39,6 +40,11 @@ rm -f "$ZIP_PATH"
   zip -rq "$ZIP_PATH" "$PLUGIN_SLUG"
 )
 
+rm -rf "$EXTRACT_DIR"
+unzip -q "$ZIP_PATH" -d "$DIST_DIR"
+
 rm -rf "$STAGE_DIR"
 
-echo "Build complete: $ZIP_PATH"
+echo "Build complete:"
+echo "  Zip: $ZIP_PATH"
+echo "  Folder: $EXTRACT_DIR"

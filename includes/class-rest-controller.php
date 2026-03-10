@@ -174,7 +174,7 @@ class Rest_Controller {
 	 */
 	public function permission_check( WP_REST_Request $request ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			return new WP_Error( 'forbidden', __( 'Insufficient permissions.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'forbidden', __( 'Insufficient permissions.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		$nonce = $request->get_header( 'X-WP-Nonce' );
@@ -182,7 +182,7 @@ class Rest_Controller {
 			$nonce = $request->get_param( '_wpnonce' );
 		}
 		if ( ! is_string( $nonce ) || ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
-			return new WP_Error( 'nonce_failed', __( 'Invalid security nonce.', 'modern-file-manager' ), array( 'status' => 403 ) );
+			return new WP_Error( 'nonce_failed', __( 'Invalid security nonce.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
 		return true;
@@ -280,13 +280,13 @@ class Rest_Controller {
 	public function delete_paths( WP_REST_Request $request ) {
 		$raw_paths = $request->get_param( 'paths' );
 		if ( ! is_array( $raw_paths ) ) {
-			return $this->error_response( new WP_Error( 'invalid_request', __( 'paths must be an array.', 'modern-file-manager' ), array( 'status' => 400 ) ) );
+			return $this->error_response( new WP_Error( 'invalid_request', __( 'paths must be an array.', 'modern-file-db-manager' ), array( 'status' => 400 ) ) );
 		}
 
 		$paths = array_map( array( $this->filesystem, 'sanitize_relative_path' ), $raw_paths );
 		$paths = array_values( array_filter( $paths ) );
 		if ( empty( $paths ) ) {
-			return $this->error_response( new WP_Error( 'invalid_request', __( 'No valid paths provided.', 'modern-file-manager' ), array( 'status' => 400 ) ) );
+			return $this->error_response( new WP_Error( 'invalid_request', __( 'No valid paths provided.', 'modern-file-db-manager' ), array( 'status' => 400 ) ) );
 		}
 
 		$result = $this->filesystem->delete_paths( $paths );
@@ -304,7 +304,7 @@ class Rest_Controller {
 		$path  = $this->filesystem->sanitize_relative_path( $request->get_param( 'path' ) );
 		$files = $request->get_file_params();
 		if ( ! isset( $files['file'] ) || ! is_array( $files['file'] ) ) {
-			return $this->error_response( new WP_Error( 'invalid_request', __( 'Missing file upload payload.', 'modern-file-manager' ), array( 'status' => 400 ) ) );
+			return $this->error_response( new WP_Error( 'invalid_request', __( 'Missing file upload payload.', 'modern-file-db-manager' ), array( 'status' => 400 ) ) );
 		}
 
 		$result = $this->filesystem->upload_file( $path, $files['file'] );
@@ -329,7 +329,7 @@ class Rest_Controller {
 		$filename = str_replace( '"', '', $filename );
 		$content  = file_get_contents( $resolved );
 		if ( false === $content ) {
-			return $this->error_response( new WP_Error( 'io_error', __( 'Unable to read download file.', 'modern-file-manager' ), array( 'status' => 500 ) ) );
+			return $this->error_response( new WP_Error( 'io_error', __( 'Unable to read download file.', 'modern-file-db-manager' ), array( 'status' => 500 ) ) );
 		}
 		nocache_headers();
 		header( 'Content-Description: File Transfer' );

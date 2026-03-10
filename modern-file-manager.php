@@ -7,7 +7,7 @@
  * Author URI: https://camytgroup.com
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: modern-file-manager
+ * Text Domain: modern-file-db-manager
  * Domain Path: /languages
  *
  * @package ModernFileManager
