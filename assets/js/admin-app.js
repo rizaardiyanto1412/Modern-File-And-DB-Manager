@@ -261,6 +261,12 @@
 				name: '',
 				submitting: false,
 			});
+			const [createDialog, setCreateDialog] = useState({
+				open: false,
+				kind: 'file',
+				name: '',
+				submitting: false,
+			});
 			const [editorOpen, setEditorOpen] = useState(false);
 			const [editorPath, setEditorPath] = useState('');
 			const [editorLoading, setEditorLoading] = useState(false);
@@ -272,6 +278,7 @@
 			const editorViewRef = useRef(null);
 			const editorThemeCompartmentRef = useRef(null);
 			const renameInputRef = useRef(null);
+			const createInputRef = useRef(null);
 
 		const selectedItems = useMemo(
 			() => items.filter((item) => selected[item.path]),
@@ -396,6 +403,11 @@
 
 		useEffect(() => {
 			function onKeyDown(event) {
+				if (event.key === 'Escape' && createDialog.open) {
+					event.preventDefault();
+					closeCreateDialog();
+					return;
+				}
 				if (event.key === 'Escape' && renameDialog.open) {
 					event.preventDefault();
 					closeRenameDialog();
@@ -406,7 +418,7 @@
 					closeTransferDialog();
 					return;
 				}
-				if (renameDialog.open || transferDialog.open || editorOpen) {
+				if (createDialog.open || renameDialog.open || transferDialog.open || editorOpen) {
 					return;
 				}
 				if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'r') {
@@ -424,7 +436,7 @@
 			}
 			window.addEventListener('keydown', onKeyDown);
 			return () => window.removeEventListener('keydown', onKeyDown);
-		}, [editorOpen, path, renameDialog.open, selectedItems, transferDialog.open]);
+		}, [createDialog.open, editorOpen, path, renameDialog.open, selectedItems, transferDialog.open]);
 
 		useEffect(() => {
 			if (!renameDialog.open || !renameInputRef.current) {
@@ -433,6 +445,13 @@
 			renameInputRef.current.focus();
 			renameInputRef.current.select();
 		}, [renameDialog.open]);
+
+		useEffect(() => {
+			if (!createDialog.open || !createInputRef.current) {
+				return;
+			}
+			createInputRef.current.focus();
+		}, [createDialog.open]);
 
 		useEffect(() => () => {
 			if (editorViewRef.current) {
@@ -508,27 +527,62 @@
 			setSelected({ [filePath]: true });
 		}
 
-		async function handleCreateFolder() {
-			const name = window.prompt(__('Folder name:', 'modern-file-db-manager'));
-			if (!name) return;
-			try {
-				await apiFetch('/mkdir', { method: 'POST', body: { path, name } });
-				toast('success', __('Folder created.', 'modern-file-db-manager'));
-				refresh(path);
-			} catch (error) {
-				toast('error', error.message);
-			}
+		function openCreateDialog(kind) {
+			setCreateDialog({
+				open: true,
+				kind: kind === 'folder' ? 'folder' : 'file',
+				name: '',
+				submitting: false,
+			});
 		}
 
-		async function handleCreateFile() {
-			const name = window.prompt(__('File name:', 'modern-file-db-manager'));
-			if (!name) return;
+		function closeCreateDialog() {
+			setCreateDialog({
+				open: false,
+				kind: 'file',
+				name: '',
+				submitting: false,
+			});
+		}
+
+		function getCreateInvalidReason(name) {
+			const trimmed = String(name || '').trim();
+			if (!trimmed) {
+				return __('Please provide a valid file or folder name.', 'modern-file-db-manager');
+			}
+			return '';
+		}
+
+		function handleCreateFolder() {
+			openCreateDialog('folder');
+		}
+
+		function handleCreateFile() {
+			openCreateDialog('file');
+		}
+
+		async function confirmCreate() {
+			if (createDialog.submitting) {
+				return;
+			}
+
+			const invalidReason = getCreateInvalidReason(createDialog.name);
+			if (invalidReason) {
+				toast('error', invalidReason);
+				return;
+			}
+
+			const name = String(createDialog.name || '').trim();
+			const route = createDialog.kind === 'folder' ? '/mkdir' : '/create-file';
+			setCreateDialog((current) => ({ ...current, submitting: true }));
 			try {
-				await apiFetch('/create-file', { method: 'POST', body: { path, name } });
-				toast('success', __('File created.', 'modern-file-db-manager'));
+				await apiFetch(route, { method: 'POST', body: { path, name } });
+				toast('success', createDialog.kind === 'folder' ? __('Folder created.', 'modern-file-db-manager') : __('File created.', 'modern-file-db-manager'));
+				closeCreateDialog();
 				refresh(path);
 			} catch (error) {
 				toast('error', error.message);
+				setCreateDialog((current) => ({ ...current, submitting: false }));
 			}
 		}
 
@@ -1044,6 +1098,7 @@
 		}
 
 		const selectedItem = selectedItems.length === 1 ? selectedItems[0] : null;
+		const createInvalidReason = createDialog.open ? getCreateInvalidReason(createDialog.name) : '';
 		const renameInvalidReason = renameDialog.open ? getRenameInvalidReason(renameDialog.item, renameDialog.name) : '';
 		const transferInvalidReason = transferDialog.open ? getTransferInvalidReason(transferDialog.item, transferDialog.destination) : '';
 
@@ -1256,6 +1311,58 @@
 						h('div', { className: `mfm-editor-host ${editorLoading ? 'is-loading' : ''}` },
 							editorLoading ? h('div', { className: 'mfm-editor-loading' }, __('Loading editor...', 'modern-file-db-manager')) : null,
 							h('div', { ref: editorHostRef, className: 'mfm-editor-cm-root' })
+						)
+					)
+				) : null,
+				createDialog.open ? h('div', {
+					className: 'mfm-editor-modal mfm-transfer-modal',
+					role: 'dialog',
+					'aria-modal': 'true',
+					'aria-label': createDialog.kind === 'folder' ? __('Create folder', 'modern-file-db-manager') : __('Create file', 'modern-file-db-manager'),
+					onClick: closeCreateDialog,
+				},
+					h('div', {
+						className: 'mfm-rename-window',
+						onClick: (event) => event.stopPropagation(),
+					},
+						h('div', { className: 'mfm-transfer-header' },
+							h('strong', null, createDialog.kind === 'folder' ? __('New Folder', 'modern-file-db-manager') : __('New File', 'modern-file-db-manager')),
+							h('button', { type: 'button', className: 'button', onClick: closeCreateDialog, disabled: createDialog.submitting }, __('Cancel', 'modern-file-db-manager'))
+						),
+						h('p', { className: 'mfm-transfer-source' },
+							`${__('Path:', 'modern-file-db-manager')} ${path}`
+						),
+						h('label', { className: 'mfm-rename-field' },
+							h('span', null, createDialog.kind === 'folder' ? __('Folder name', 'modern-file-db-manager') : __('File name', 'modern-file-db-manager')),
+							h('input', {
+								ref: createInputRef,
+								type: 'text',
+								value: createDialog.name,
+								onChange: (event) => setCreateDialog((current) => ({ ...current, name: event.target.value })),
+								onKeyDown: (event) => {
+									if (event.key === 'Enter') {
+										event.preventDefault();
+										confirmCreate();
+									}
+								},
+								disabled: createDialog.submitting,
+							})
+						),
+						createInvalidReason ? h('p', { className: 'mfm-transfer-error' }, createInvalidReason) : null,
+						h('div', { className: 'mfm-transfer-actions' },
+							h('button', { type: 'button', className: 'button', onClick: closeCreateDialog, disabled: createDialog.submitting }, __('Cancel', 'modern-file-db-manager')),
+							h(
+								'button',
+								{
+									type: 'button',
+									className: 'button button-primary',
+									onClick: confirmCreate,
+									disabled: !!createInvalidReason || createDialog.submitting,
+								},
+								createDialog.submitting
+									? __('Working...', 'modern-file-db-manager')
+									: (createDialog.kind === 'folder' ? __('Create Folder', 'modern-file-db-manager') : __('Create File', 'modern-file-db-manager'))
+							)
 						)
 					)
 				) : null,
