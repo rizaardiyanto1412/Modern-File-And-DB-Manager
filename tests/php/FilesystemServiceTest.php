@@ -104,6 +104,75 @@ class FilesystemServiceTest extends TestCase {
 		$this->assertSame( 'forbidden', $result->get_error_code() );
 	}
 
+	public function test_save_file_blocks_invalid_php_syntax_and_preserves_original(): void {
+		$targetPath = '/safe-dir/write-me.php';
+		$file       = $this->root . $targetPath;
+		file_put_contents( $file, "<?php\nfunction keep_ok() { return true; }\n" );
+		$tempLintPath = '';
+
+		$service = new Filesystem_Service(
+			static function ( $binary, $temp_file ) use ( &$tempLintPath ) {
+				$tempLintPath = (string) $temp_file;
+				return array(
+					'available' => true,
+					'exit_code' => 255,
+					'output'    => "PHP Parse error: unexpected token \"}\" in {$temp_file} on line 18\nParse error: unexpected token \"}\" in {$temp_file} on line 18\nErrors parsing {$temp_file}",
+				);
+			}
+		);
+
+		$result = $service->save_file( $targetPath, "<?php\nfunction broken( { \n" );
+
+		$this->assertTrue( \is_wp_error( $result ) );
+		$this->assertSame( 'php_lint_failed', $result->get_error_code() );
+		$this->assertSame( 422, $result->get_error_data()['status'] );
+		$this->assertStringContainsString( 'Save blocked', $result->get_error_message() );
+		$this->assertStringContainsString( $targetPath, $result->get_error_message() );
+		$this->assertStringNotContainsString( $tempLintPath, $result->get_error_message() );
+		$this->assertStringContainsString( 'keep_ok', (string) file_get_contents( $file ) );
+	}
+
+	public function test_save_file_blocks_when_lint_unavailable_and_preserves_original(): void {
+		$targetPath = '/safe-dir/write-me.php';
+		$file       = $this->root . $targetPath;
+		file_put_contents( $file, "<?php\nfunction keep_ok() { return true; }\n" );
+
+		$service = new Filesystem_Service(
+			static function () {
+				return array(
+					'available' => false,
+					'exit_code' => 1,
+					'output'    => 'lint unavailable',
+				);
+			}
+		);
+
+		$result = $service->save_file( $targetPath, "<?php\nfunction maybe_ok() { return false; }\n" );
+
+		$this->assertTrue( \is_wp_error( $result ) );
+		$this->assertSame( 'php_lint_unavailable', $result->get_error_code() );
+		$this->assertSame( 503, $result->get_error_data()['status'] );
+		$this->assertStringContainsString( 'fatal-error check is unavailable', $result->get_error_message() );
+		$this->assertStringContainsString( 'keep_ok', (string) file_get_contents( $file ) );
+	}
+
+	public function test_save_file_non_php_bypasses_lint_runner(): void {
+		$targetPath = '/safe-dir/write-me.txt';
+		$file       = $this->root . $targetPath;
+		file_put_contents( $file, "before\n" );
+
+		$service = new Filesystem_Service(
+			static function () {
+				throw new \RuntimeException( 'Lint runner should not be called for non-PHP files.' );
+			}
+		);
+
+		$result = $service->save_file( $targetPath, "after\n" );
+
+		$this->assertFalse( \is_wp_error( $result ) );
+		$this->assertSame( "after\n", (string) file_get_contents( $file ) );
+	}
+
 	private function rrmdir( string $dir ): void {
 		if ( ! is_dir( $dir ) ) {
 			return;

@@ -79,15 +79,21 @@
 
 		if (!response.ok) {
 			let message = __('Request failed.', 'modern-file-db-manager');
+			let code = '';
 			try {
 				const payload = await response.json();
 				if (payload && payload.message) {
 					message = payload.message;
 				}
+				if (payload && payload.code) {
+					code = String(payload.code);
+				}
 			} catch (error) {
 				// Keep default message.
 			}
-			throw new Error(message);
+			const err = new Error(message);
+			err.code = code;
+			throw err;
 		}
 
 		const contentType = response.headers.get('content-type') || '';
@@ -362,12 +368,47 @@
 			}
 		}
 
-		function toast(type, message) {
+		function toast(type, message, options) {
+			const opts = options && typeof options === 'object' ? options : {};
 			const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 			setToasts((current) => current.concat([{ id, type, message }]));
-			setTimeout(() => {
-				setToasts((current) => current.filter((item) => item.id !== id));
-			}, 3800);
+
+			const defaultAutoCloseMs = type === 'error' ? 4800 : 2600;
+			const shouldAutoClose = !opts.persistent;
+			const autoCloseMs = Number(opts.autoCloseMs || defaultAutoCloseMs);
+
+			if (shouldAutoClose && autoCloseMs > 0) {
+				window.setTimeout(() => {
+					setToasts((current) => current.filter((item) => item.id !== id));
+				}, autoCloseMs);
+			}
+		}
+
+		function removeToast(id) {
+			setToasts((current) => current.filter((item) => item.id !== id));
+		}
+
+		async function copyToastMessage(message) {
+			try {
+				if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+					await navigator.clipboard.writeText(String(message || ''));
+					toast('success', __('Error copied to clipboard.', 'modern-file-db-manager'), { autoCloseMs: 1800 });
+					return;
+				}
+
+				const fallback = document.createElement('textarea');
+				fallback.value = String(message || '');
+				fallback.setAttribute('readonly', '');
+				fallback.style.position = 'fixed';
+				fallback.style.opacity = '0';
+				document.body.appendChild(fallback);
+				fallback.select();
+				document.execCommand('copy');
+				document.body.removeChild(fallback);
+				toast('success', __('Error copied to clipboard.', 'modern-file-db-manager'), { autoCloseMs: 1800 });
+			} catch (error) {
+				toast('error', __('Unable to copy error message.', 'modern-file-db-manager'));
+			}
 		}
 
 		async function refresh(nextPath) {
@@ -949,7 +990,8 @@
 				toast('success', __('File saved.', 'modern-file-db-manager'));
 				refresh(path);
 			} catch (error) {
-				toast('error', error.message);
+				const isFatalSyntaxBlock = error && error.code === 'php_lint_failed';
+				toast('error', error.message, isFatalSyntaxBlock ? { persistent: true } : undefined);
 			} finally {
 				setEditorSaving(false);
 			}
@@ -1558,7 +1600,37 @@
 					)
 				) : null,
 				h('div', { className: 'mfm-toast-stack', 'aria-live': 'polite' },
-					toasts.map((item) => h('div', { key: item.id, className: `mfm-toast is-${item.type}` }, item.message))
+					toasts.map((item) =>
+						h('div', { key: item.id, className: `mfm-toast is-${item.type}` },
+							h('div', { className: 'mfm-toast-message' }, item.message),
+							h('div', { className: 'mfm-toast-actions' },
+								item.type === 'error'
+									? h(
+										'button',
+										{
+											type: 'button',
+											className: 'mfm-toast-action',
+											onClick: () => copyToastMessage(item.message),
+											title: __('Copy error', 'modern-file-db-manager'),
+											'aria-label': __('Copy error', 'modern-file-db-manager'),
+										},
+										h(Icon, { name: 'copy' })
+									)
+									: null,
+								h(
+									'button',
+									{
+										type: 'button',
+										className: 'mfm-toast-action',
+										onClick: () => removeToast(item.id),
+										title: __('Close', 'modern-file-db-manager'),
+										'aria-label': __('Close', 'modern-file-db-manager'),
+									},
+									h('span', { 'aria-hidden': 'true' }, '\u00d7')
+								)
+							)
+						)
+					)
 				)
 		);
 	}

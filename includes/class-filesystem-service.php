@@ -30,9 +30,18 @@ class Filesystem_Service {
 	private $denylist;
 
 	/**
+	 * Optional PHP lint runner callback for testing.
+	 *
+	 * Signature: function(string $binary, string $temp_file): array{available:bool,exit_code:int,output:string}
+	 *
+	 * @var callable|null
+	 */
+	private $php_lint_runner;
+
+	/**
 	 * Constructor.
 	 */
-	public function __construct() {
+	public function __construct( $php_lint_runner = null ) {
 		$raw_root       = wp_normalize_path( untrailingslashit( ABSPATH ) );
 		$real_root      = realpath( $raw_root );
 		$this->root     = false !== $real_root ? wp_normalize_path( $real_root ) : $raw_root;
@@ -40,6 +49,7 @@ class Filesystem_Service {
 			'/.git',
 			'/.env',
 		);
+		$this->php_lint_runner = is_callable( $php_lint_runner ) ? $php_lint_runner : null;
 	}
 
 	/**
@@ -446,6 +456,13 @@ class Filesystem_Service {
 			return new WP_Error( 'forbidden', __( 'File is not writable.', 'modern-file-db-manager' ), array( 'status' => 403 ) );
 		}
 
+		if ( $this->should_run_php_lint_check( $resolved ) ) {
+			$lint_result = $this->validate_php_syntax_before_save( (string) $content, $this->to_relative_path( $resolved ) );
+			if ( is_wp_error( $lint_result ) ) {
+				return $lint_result;
+			}
+		}
+
 		$written = @file_put_contents( $resolved, (string) $content, LOCK_EX );
 		if ( false === $written ) {
 			return new WP_Error( 'io_error', __( 'Unable to save file.', 'modern-file-db-manager' ), array( 'status' => 500 ) );
@@ -597,6 +614,196 @@ class Filesystem_Service {
 		}
 
 		return $name;
+	}
+
+	/**
+	 * Check whether a file path should be lint-validated as PHP.
+	 *
+	 * @param string $absolute_path Absolute file path.
+	 * @return bool
+	 */
+	private function should_run_php_lint_check( $absolute_path ) {
+		$extension = strtolower( (string) pathinfo( $absolute_path, PATHINFO_EXTENSION ) );
+		return in_array( $extension, array( 'php', 'phtml', 'php5', 'php7', 'php8' ), true );
+	}
+
+	/**
+	 * Validate PHP syntax before saving.
+	 *
+	 * @param string $content Candidate PHP content.
+	 * @param string $display_path User-facing edited path.
+	 * @return true|WP_Error
+	 */
+	private function validate_php_syntax_before_save( $content, $display_path ) {
+		$temp_file = @tempnam( sys_get_temp_dir(), 'mfm-lint-' );
+		if ( false === $temp_file ) {
+			return new WP_Error(
+				'php_lint_unavailable',
+				__( 'PHP fatal-error check is unavailable on this server, so save was blocked.', 'modern-file-db-manager' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		$temp_file = wp_normalize_path( $temp_file );
+		$written   = @file_put_contents( $temp_file, (string) $content, LOCK_EX );
+		if ( false === $written ) {
+			wp_delete_file( $temp_file );
+			return new WP_Error(
+				'php_lint_unavailable',
+				__( 'PHP fatal-error check is unavailable on this server, so save was blocked.', 'modern-file-db-manager' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		try {
+			$binary     = $this->get_php_lint_binary();
+			$lint_run   = $this->execute_php_lint( $binary, $temp_file );
+			$available  = ! empty( $lint_run['available'] );
+			$exit_code  = isset( $lint_run['exit_code'] ) ? (int) $lint_run['exit_code'] : 1;
+			$raw_output = isset( $lint_run['output'] ) ? (string) $lint_run['output'] : '';
+
+			if ( ! $available ) {
+				return new WP_Error(
+					'php_lint_unavailable',
+					__( 'PHP fatal-error check is unavailable on this server, so save was blocked.', 'modern-file-db-manager' ),
+					array( 'status' => 503 )
+				);
+			}
+
+			if ( 0 !== $exit_code ) {
+				$message = __( 'Save blocked: this change would cause a PHP fatal error (syntax error).', 'modern-file-db-manager' );
+				$details = $this->format_php_lint_error_details( $raw_output, $temp_file, $display_path );
+				if ( '' !== $details ) {
+					$message .= "\n\n" . $details;
+				}
+
+				return new WP_Error(
+					'php_lint_failed',
+					$message,
+					array( 'status' => 422 )
+				);
+			}
+		} finally {
+			wp_delete_file( $temp_file );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Determine which PHP binary to use for lint execution.
+	 *
+	 * @return string
+	 */
+	private function get_php_lint_binary() {
+		if ( defined( 'PHP_BINARY' ) && is_string( PHP_BINARY ) && '' !== PHP_BINARY ) {
+			return PHP_BINARY;
+		}
+
+		return 'php';
+	}
+
+	/**
+	 * Execute php -l and return normalized output.
+	 *
+	 * @param string $binary PHP binary.
+	 * @param string $temp_file Temp file path.
+	 * @return array{available:bool,exit_code:int,output:string}
+	 */
+	private function execute_php_lint( $binary, $temp_file ) {
+		if ( is_callable( $this->php_lint_runner ) ) {
+			$result    = call_user_func( $this->php_lint_runner, (string) $binary, (string) $temp_file );
+			$available = is_array( $result ) && isset( $result['available'] ) ? (bool) $result['available'] : false;
+			$exit_code = is_array( $result ) && isset( $result['exit_code'] ) ? (int) $result['exit_code'] : 1;
+			$output    = is_array( $result ) && isset( $result['output'] ) ? (string) $result['output'] : '';
+			return array(
+				'available' => $available,
+				'exit_code' => $exit_code,
+				'output'    => $output,
+			);
+		}
+
+		if ( ! function_exists( 'exec' ) ) {
+			return array(
+				'available' => false,
+				'exit_code' => 1,
+				'output'    => 'exec unavailable',
+			);
+		}
+
+		$command = escapeshellarg( (string) $binary ) . ' -l ' . escapeshellarg( (string) $temp_file ) . ' 2>&1';
+		$output  = array();
+		$status  = null;
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Needed for fail-closed lint preflight.
+		$exec_ok = @exec( $command, $output, $status );
+		if ( null === $status ) {
+			return array(
+				'available' => false,
+				'exit_code' => 1,
+				'output'    => is_string( $exec_ok ) ? $exec_ok : '',
+			);
+		}
+
+		return array(
+			'available' => true,
+			'exit_code' => (int) $status,
+			'output'    => implode( "\n", array_map( 'strval', $output ) ),
+		);
+	}
+
+	/**
+	 * Format lint output for users (hide temp path and noisy duplicated lines).
+	 *
+	 * @param string $raw_output Raw lint output.
+	 * @param string $temp_file Temp lint file path.
+	 * @param string $display_path User-visible edited file path.
+	 * @return string
+	 */
+	private function format_php_lint_error_details( $raw_output, $temp_file, $display_path ) {
+		$normalized = trim( preg_replace( "/\r\n|\r/", "\n", (string) $raw_output ) );
+		if ( '' === $normalized ) {
+			return '';
+		}
+
+		$lines = array_map( 'trim', explode( "\n", $normalized ) );
+		$lines = array_values(
+			array_filter(
+				array_unique( $lines ),
+				static function ( $line ) {
+					if ( '' === $line ) {
+						return false;
+					}
+					return 0 !== stripos( $line, 'Errors parsing ' );
+				}
+			)
+		);
+
+		if ( empty( $lines ) ) {
+			return '';
+		}
+
+		foreach ( $lines as &$line ) {
+			if ( 0 === stripos( $line, 'PHP ' ) ) {
+				$line = substr( $line, 4 );
+			}
+			$line = str_replace( (string) $temp_file, (string) $display_path, $line );
+		}
+		unset( $line );
+
+		$preferred = '';
+		foreach ( $lines as $line ) {
+			if ( false !== stripos( $line, 'parse error:' ) || false !== stripos( $line, 'fatal error:' ) ) {
+				$preferred = $line;
+				break;
+			}
+		}
+
+		if ( '' !== $preferred ) {
+			return $preferred;
+		}
+
+		return $lines[0];
 	}
 
 	/**

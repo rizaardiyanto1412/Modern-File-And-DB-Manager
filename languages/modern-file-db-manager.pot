@@ -166,6 +166,14 @@ msgstr ""
 msgid "Unable to save file."
 msgstr ""
 
+#: includes/class-filesystem-service.php:644
+msgid "PHP fatal-error check is unavailable on this server, so save was blocked."
+msgstr ""
+
+#: includes/class-filesystem-service.php:672
+msgid "Save blocked: this change would cause a PHP fatal error (syntax error)."
+msgstr ""
+
 #: includes/class-filesystem-service.php:490
 #: includes/class-filesystem-service.php:505
 msgid "Access to this path is blocked."
@@ -543,6 +551,18 @@ msgstr ""
 
 #: assets/js/admin-app.js:1183
 msgid "Close"
+msgstr ""
+
+#: assets/js/admin-app.js:1184
+msgid "Copy error"
+msgstr ""
+
+#: assets/js/admin-app.js:1184
+msgid "Error copied to clipboard."
+msgstr ""
+
+#: assets/js/admin-app.js:1184
+msgid "Unable to copy error message."
 msgstr ""
 
 #: assets/js/admin-app.js:1184

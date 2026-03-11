@@ -26,7 +26,15 @@ class RestControllerTest extends TestCase {
 		$GLOBALS['mfm_test_is_uploaded_file'] = true;
 		$GLOBALS['mfm_test_force_move_uploaded_file'] = true;
 
-		$this->filesystem = new Filesystem_Service();
+		$this->filesystem = new Filesystem_Service(
+			static function () {
+				return array(
+					'available' => true,
+					'exit_code' => 0,
+					'output'    => 'No syntax errors detected',
+				);
+			}
+		);
 		$this->controller = new Rest_Controller( $this->filesystem );
 	}
 
@@ -273,6 +281,62 @@ class RestControllerTest extends TestCase {
 		$this->assertSame( 400, $response->get_status() );
 		$this->assertFalse( $data['ok'] );
 		$this->assertSame( 'invalid_path', $data['code'] );
+	}
+
+	public function test_save_file_endpoint_returns_standard_error_when_php_lint_fails(): void {
+		file_put_contents( $this->root . '/safe-dir/write-me.php', "<?php\nfunction keep_ok() { return true; }\n" );
+
+		$filesystem = new Filesystem_Service(
+			static function () {
+				return array(
+					'available' => true,
+					'exit_code' => 255,
+					'output'    => 'Parse error: unexpected token "}"',
+				);
+			}
+		);
+		$controller = new Rest_Controller( $filesystem );
+
+		$request = new \WP_REST_Request( 'POST', '/modern-file-manager/v1/save-file' );
+		$request->set_param( 'path', '/safe-dir/write-me.php' );
+		$request->set_param( 'content', "<?php\nfunction broken( { \n" );
+
+		$response = $controller->save_file( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 422, $response->get_status() );
+		$this->assertFalse( $data['ok'] );
+		$this->assertSame( 'php_lint_failed', $data['code'] );
+		$this->assertArrayHasKey( 'message', $data );
+		$this->assertArrayHasKey( 'details', $data );
+	}
+
+	public function test_save_file_endpoint_returns_standard_error_when_php_lint_unavailable(): void {
+		file_put_contents( $this->root . '/safe-dir/write-me.php', "<?php\nfunction keep_ok() { return true; }\n" );
+
+		$filesystem = new Filesystem_Service(
+			static function () {
+				return array(
+					'available' => false,
+					'exit_code' => 1,
+					'output'    => 'lint unavailable',
+				);
+			}
+		);
+		$controller = new Rest_Controller( $filesystem );
+
+		$request = new \WP_REST_Request( 'POST', '/modern-file-manager/v1/save-file' );
+		$request->set_param( 'path', '/safe-dir/write-me.php' );
+		$request->set_param( 'content', "<?php\nfunction ok() { return true; }\n" );
+
+		$response = $controller->save_file( $request );
+		$data     = $response->get_data();
+
+		$this->assertSame( 503, $response->get_status() );
+		$this->assertFalse( $data['ok'] );
+		$this->assertSame( 'php_lint_unavailable', $data['code'] );
+		$this->assertArrayHasKey( 'message', $data );
+		$this->assertArrayHasKey( 'details', $data );
 	}
 
 	private function rrmdir( string $dir ): void {

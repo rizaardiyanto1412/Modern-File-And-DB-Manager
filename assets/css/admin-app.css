@@ -449,11 +449,17 @@
 .mfm-toast-stack {
 	position: fixed;
 	right: 22px;
-	bottom: 22px;
+	top: 68px;
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	z-index: 100000;
+	z-index: 100003;
+	max-width: min(560px, calc(100vw - 44px));
+}
+
+.mfm-toast-stack .mfm-toast {
+	max-width: 100%;
+	overflow-wrap: anywhere;
 }
 
 .mfm-toast {
@@ -464,10 +470,65 @@
 	min-width: 220px;
 	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
 	animation: mfm-slide-in var(--mfm-transition);
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.mfm-toast-message {
+	flex: 1;
+	line-height: 1.4;
+	white-space: pre-line;
+}
+
+.mfm-toast-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.mfm-toast-action {
+	border: 0;
+	background: rgba(255, 255, 255, 0.22);
+	color: #fff;
+	width: 28px;
+	height: 28px;
+	border-radius: 7px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	cursor: pointer;
+	transition: background var(--mfm-transition), transform var(--mfm-transition);
+}
+
+.mfm-toast-action:hover {
+	background: rgba(255, 255, 255, 0.32);
+	transform: translateY(-1px);
+}
+
+.mfm-toast-action .mfm-icon {
+	line-height: 0;
 }
 
 .mfm-toast.is-error {
 	background: var(--mfm-danger);
+}
+
+.mfm-toast.is-error .mfm-toast-action {
+	background: #8e1a2a;
+	border: 1px solid rgba(255, 255, 255, 0.38);
+	color: #fff;
+}
+
+.mfm-toast.is-error .mfm-toast-action .mfm-icon,
+.mfm-toast.is-error .mfm-toast-action .mfm-icon svg {
+	color: #fff;
+	stroke: #fff;
+}
+
+.mfm-toast.is-error .mfm-toast-action:hover {
+	background: #a32234;
 }
 
 .mfm-toast.is-success {
@@ -865,6 +926,13 @@
 	.mfm-editor-window {
 		height: 90vh;
 		width: 100%;
+	}
+
+	.mfm-toast-stack {
+		right: 8px;
+		left: 8px;
+		top: 56px;
+		max-width: none;
 	}
 
 	.mfm-transfer-window {
