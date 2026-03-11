@@ -554,7 +554,11 @@ class Filesystem_Service {
 	 */
 	private function is_within_root( $absolute ) {
 		$absolute = wp_normalize_path( $absolute );
-		return 0 === strpos( $absolute, $this->root );
+		if ( $absolute === $this->root ) {
+			return true;
+		}
+
+		return 0 === strpos( $absolute, $this->root . '/' );
 	}
 
 	/**

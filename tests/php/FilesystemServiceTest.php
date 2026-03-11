@@ -7,25 +7,31 @@ use PHPUnit\Framework\TestCase;
 
 class FilesystemServiceTest extends TestCase {
 	private $root;
+	private $siblingRoot;
 	private $service;
 
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->root = rtrim( MFM_TEST_ROOT, '/\\' );
+		$this->siblingRoot = dirname( $this->root ) . '/' . basename( $this->root ) . '-backup';
 		$this->rrmdir( $this->root );
+		$this->rrmdir( $this->siblingRoot );
 		mkdir( $this->root, 0755, true );
 		mkdir( $this->root . '/wp-content/uploads', 0755, true );
 		file_put_contents( $this->root . '/wp-content/uploads/sample.txt', 'hello' );
 		mkdir( $this->root . '/safe-dir', 0755, true );
 		file_put_contents( $this->root . '/wp-config.php', 'do not touch' );
 		file_put_contents( $this->root . '/.env', 'SECRET=true' );
+		mkdir( $this->siblingRoot, 0755, true );
+		file_put_contents( $this->siblingRoot . '/secret.txt', 'outside root' );
 
 		$this->service = new Filesystem_Service();
 	}
 
 	protected function tearDown(): void {
 		$this->rrmdir( $this->root );
+		$this->rrmdir( $this->siblingRoot );
 		parent::tearDown();
 	}
 
@@ -62,6 +68,15 @@ class FilesystemServiceTest extends TestCase {
 
 		$this->assertTrue( \is_wp_error( $result ) );
 		$this->assertContains( $result->get_error_code(), array( 'not_found', 'out_of_scope' ) );
+	}
+
+	public function test_it_blocks_prefix_based_sibling_traversal(): void {
+		$path = '/../' . basename( $this->siblingRoot ) . '/secret.txt';
+
+		$result = $this->service->read_file( $path );
+
+		$this->assertTrue( \is_wp_error( $result ) );
+		$this->assertSame( 'out_of_scope', $result->get_error_code() );
 	}
 
 	public function test_it_creates_renames_moves_and_deletes_file(): void {
