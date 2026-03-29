@@ -2,6 +2,13 @@
 
 Modern File Manager is an admin-only WordPress plugin that provides a single-page file manager with no full page refresh while navigating folders.
 
+## Screenshots
+
+<img width="2277" height="1204" alt="image" src="https://github.com/user-attachments/assets/38489df7-050f-419e-a898-dd781422d3ca" />
+<img width="2300" height="1123" alt="image" src="https://github.com/user-attachments/assets/f684c253-eb9d-4185-a6f3-0c20e5b0eda2" />
+<img width="1377" height="906" alt="image" src="https://github.com/user-attachments/assets/25e84502-049d-427d-a73b-ddd8d3ef68f7" />
+
+
 ## Features (v1)
 
 - Interactive folder navigation (SPA in wp-admin)
