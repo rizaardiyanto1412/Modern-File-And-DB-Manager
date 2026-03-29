@@ -90,29 +90,6 @@ Covers:
 - Create/rename/move/delete flow
 - Root-delete prevention
 
-### 2) UI smoke test (Playwright)
-
-Install:
-
-```bash
-npm install
-npx playwright install
-```
-
-Set env vars and run:
-
-```bash
-MFM_BASE_URL="http://dev.localhost" \
-MFM_ADMIN_USER="admin" \
-MFM_ADMIN_PASS="your-password" \
-npm run test:e2e
-```
-
-Notes:
-
-- The test is skipped automatically when `MFM_ADMIN_PASS` is not provided.
-- It verifies the file manager page loads and navigation stays in-app (no full reload route change).
-
 ## Notes
 
 - The plugin currently uses direct filesystem functions with strict policy checks.
