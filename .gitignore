@@ -4,3 +4,4 @@
 /test-results/
 .phpunit.cache/
 /dist/
+.playwright-cli/
